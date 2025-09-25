@@ -11,7 +11,7 @@ import InstagramIcon from '@mui/icons-material/Instagram';
 import LinkedInIcon from '@mui/icons-material/LinkedIn';
 
 import backgroundImage from '/background.jpg';
-import logoUnsta from '/logo.png';
+import logoGEM from '/public/favicon.png';
 
 const useOnScreen = (options) => {
     const ref = useRef(null);
@@ -61,7 +61,7 @@ const LandingPage = () => {
         <Box sx={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', backgroundColor: '#ffffff' }}>
             <AppBar position="static" color="primary" sx={{ boxShadow: 1 }}>
                 <Toolbar>
-                    <img src={logoUnsta} alt="Logo UNSTA" style={{ height: '40px', marginRight: '16px' }} />
+                    <img src={logoGEM} alt="Logo GEM" style={{ height: '40px', marginRight: '16px' }} />
                 </Toolbar>
             </AppBar>
             <Box
@@ -76,7 +76,7 @@ const LandingPage = () => {
             >
                 <Container maxWidth="md">
                     <Typography variant="h2" component="h1" gutterBottom sx={{ fontWeight: 'bold', textShadow: '2px 2px 4px rgba(0,0,0,0.7)' }}>
-                        Consultorio Nutricional UNSTA
+                        GEM Plus
                     </Typography>
                     <Typography variant="h5" sx={{ mb: 4, textShadow: '1px 1px 3px rgba(0,0,0,0.7)' }}>
                         Un espacio de atención en salud alimentaria pensado para la comunidad universitaria
@@ -173,11 +173,11 @@ const LandingPage = () => {
                 <Container maxWidth="lg">
                     <Grid container spacing={4} justifyContent="flex-start">
                         <Grid item xs={12} sm={6} md={4}>
-                            <Typography variant="h6" gutterBottom sx={{ borderBottom: '2px solid #194da0', pb: 1, mb: 2 }}>Campus UNSTA Yerba Buena</Typography>
+                            <Typography variant="h6" gutterBottom sx={{ borderBottom: '2px solid #194da0', pb: 1, mb: 2 }}>Direccion desconocida</Typography>
                             <List dense>
-                                <ListItem disableGutters><ListItemIcon sx={{ minWidth: '40px' }}><PlaceIcon sx={{ color: 'white' }} /></ListItemIcon><ListItemText primary="Av. Pdte. Perón 2085" /></ListItem>
-                                <ListItem disableGutters><ListItemIcon sx={{ minWidth: '40px' }}><EmailIcon sx={{ color: 'white' }} /></ListItemIcon><ListItemText primary="consultorio.nutricional@unsta.edu.ar" /></ListItem>
-                                <ListItem disableGutters><ListItemIcon sx={{ minWidth: '40px' }}><PhoneIcon sx={{ color: 'white' }} /></ListItemIcon><ListItemText primary="0381 410 1188" /></ListItem>
+                                <ListItem disableGutters><ListItemIcon sx={{ minWidth: '40px' }}><PlaceIcon sx={{ color: 'white' }} /></ListItemIcon><ListItemText primary="Tucuman" /></ListItem>
+                                <ListItem disableGutters><ListItemIcon sx={{ minWidth: '40px' }}><EmailIcon sx={{ color: 'white' }} /></ListItemIcon><ListItemText primary="contacto.gemplus@gmail.com" /></ListItem>
+                                <ListItem disableGutters><ListItemIcon sx={{ minWidth: '40px' }}><PhoneIcon sx={{ color: 'white' }} /></ListItemIcon><ListItemText primary="No disponible" /></ListItem>
                             </List>
                         </Grid>
                         <Grid item xs={12} sm={6} md={4}>
@@ -193,7 +193,7 @@ const LandingPage = () => {
                 </Container>
             </Box>
             <Box sx={{ backgroundColor: '#222222', color: '#aaaaaa', py: 2, textAlign: 'center' }}>
-                <Typography variant="body2">GPT UNSTA 2025 - Todos los derechos reservados.</Typography>
+                <Typography variant="body2">GEM Plus 2025 - Todos los derechos reservados.</Typography>
             </Box>
 
         </Box>

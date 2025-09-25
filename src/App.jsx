@@ -6,6 +6,7 @@ import Typography from '@mui/material/Typography';
 import { AuthProvider, useAuth } from './context/AuthContext.jsx';
 import { NotificationProvider } from './context/NotificationContext.jsx';
 import LandingPage from './pages/LandingPage/LandingPage.jsx';
+import theme from './theme';
 
 import ForgotPasswordPage from './pages/ForgotPasswordPage/ForgotPasswordPage.jsx';
 import ResetPasswordPage from './pages/ResetPasswordPage/ResetPasswordPage.jsx';
@@ -14,7 +15,7 @@ import ProfessionalLoginPage from './pages/ProfessionalLoginPage/ProfessionalLog
 import ProfessionalDashboardLayout from './pages/ProfessionalDashboardPage/ProfessionalDashboardLayout.jsx';
 import AdminDashboardLayout from './pages/AdminDashboardPage/AdminDashboardLayout.jsx';
 
-const theme = createTheme({
+/*const theme = createTheme({
     palette: {
         primary: {
             main: '#194da0',
@@ -27,7 +28,7 @@ const theme = createTheme({
             contrastText: '#ffffff',
         },
     },
-});
+});*/
 
 const ProtectedRoute = ({ children, allowedRoles }) => {
     const { authUser, isAuthenticated, loadingAuth } = useAuth();

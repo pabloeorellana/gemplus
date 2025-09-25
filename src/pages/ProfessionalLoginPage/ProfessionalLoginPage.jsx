@@ -9,7 +9,7 @@ import Visibility from '@mui/icons-material/Visibility';
 import VisibilityOff from '@mui/icons-material/VisibilityOff';
 import { API_BASE_URL } from '../../config';
 
-const logoUrl = "https://i1.sndcdn.com/avatars-cLEbOjWz2zZMiHzD-wIsmGQ-t240x240.jpg";
+const logoUrl = "/public/favicon.png";
 
 const ProfessionalLoginPage = () => {
     const [credentials, setCredentials] = useState({
@@ -160,7 +160,7 @@ const ProfessionalLoginPage = () => {
                 </Box>
             </Paper>
             <Typography variant="body2" color="text.secondary" align="center" sx={{ mt: 5 }}>
-                {'© '} Gestión de Pacientes y Turnos UNSTA {new Date().getFullYear()}{'.'}
+                {'© '} GEM Plus - Gestión de Pacientes y Turnos {new Date().getFullYear()}{'.'}
             </Typography>
         </Container>
     );

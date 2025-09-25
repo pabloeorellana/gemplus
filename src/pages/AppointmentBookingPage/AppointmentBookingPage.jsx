@@ -285,9 +285,9 @@ const AppointmentBookingPage = () => {
             <CssBaseline />
             <AppBar position="static" color="primary">
                 <Toolbar>
-                    <Box component="img" src="/logo-unsta-white.png" sx={{ height: '36px', mr: 2 }} />
+                    <Box component="img" src="/public/favicon.png" sx={{ height: '36px', mr: 2 }} />
                     <Typography variant="h6" component="div" sx={{ flexGrow: 1 }}>
-                        Gestión de Pacientes y Turnos UNSTA - Solicitud de turnos
+                        GEM Plus - Solicitud de turnos
                     </Typography>
                 </Toolbar>
             </AppBar>

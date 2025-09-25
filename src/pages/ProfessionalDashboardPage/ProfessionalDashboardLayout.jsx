@@ -116,7 +116,7 @@ const ProfessionalDashboardLayout = (props) => {
         <div>
             <Toolbar>
                 <Typography variant="h6" noWrap component="div">
-                    Gestión de Pacientes y Turnos UNSTA
+                    GEM Plus - Gestión de Pacientes y Turnos
                 </Typography>
             </Toolbar>
             <Divider />
@@ -157,9 +157,9 @@ const ProfessionalDashboardLayout = (props) => {
                         <MenuIcon />
                     </IconButton>
                     <Box component={RouterLink} to="/profesional/dashboard/agenda" sx={{ display: 'flex', alignItems: 'center', textDecoration: 'none', color: 'inherit' }}>
-                        <Box component="img" src="/logo-unsta-white.png" sx={{ height: '36px', mr: 1.5 }} />
+                        <Box component="img" src="/public/favicon.png" sx={{ height: '36px', mr: 1.5 }} />
                         <Typography variant="h6" noWrap sx={{ display: { xs: 'none', sm: 'block' } }}>
-                            Gestión de Pacientes y Turnos UNSTA
+                            GEM Plus - Gestión de Pacientes y Turnos
                         </Typography>
                     </Box>
                     <Box sx={{ flexGrow: 1 }} />

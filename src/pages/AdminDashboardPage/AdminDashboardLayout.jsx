@@ -121,7 +121,7 @@ const AdminDashboardLayout = (props) => {
                         <MenuIcon />
                     </IconButton>
                     <Typography variant="h6" noWrap component="div" sx={{ flexGrow: 1 }}>
-                        Administración de Gestión de Pacientes y Turnos UNSTA
+                        Administración de GEM Plus
                     </Typography>
                     <Stack direction="row" spacing={1.5} alignItems="center">
                         <Tooltip title="Notificaciones">
