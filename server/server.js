@@ -126,6 +126,6 @@ app.use((err, req, res, next) => {
 });
 
 // Iniciar el servidor
-app.listen(PORT, () => {
-    console.log(`Servidor backend NutriSmart corriendo en el puerto: ${PORT}`);
+app.listen(PORT, '0.0.0.0', () => {
+    console.log(`Servidor backend GEM Plus corriendo en el puerto: ${PORT}`);
 });

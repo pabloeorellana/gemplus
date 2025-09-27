@@ -9,7 +9,7 @@ import Visibility from '@mui/icons-material/Visibility';
 import VisibilityOff from '@mui/icons-material/VisibilityOff';
 import { API_BASE_URL } from '../../config';
 
-const logoUrl = "/public/favicon.png";
+const logoUrl = "/public/gemplus-logo.png";
 
 const ProfessionalLoginPage = () => {
     const [credentials, setCredentials] = useState({
@@ -103,7 +103,7 @@ const ProfessionalLoginPage = () => {
                     alignItems: 'center', width: '100%',
                 }}
             >
-                <Box component="img" src={logoUrl} alt="NutriSmart Logo" sx={{ height: 80, mb: 2, objectFit: 'contain' }} />
+                <Box component="img" src={logoUrl} alt="GEM PLus Logo" sx={{ height: 50, mb: 2, objectFit: 'contain' }} />
                 <Typography component="h1" variant="h5" sx={{ mb: 1 }}>Gestión de Pacientes y Turnos</Typography>
                 <Typography component="h2" variant="subtitle1" color="text.secondary" sx={{ mb: 3 }}>Bienvenido</Typography>
 
