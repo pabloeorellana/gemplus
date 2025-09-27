@@ -10,6 +10,7 @@ import AvailabilityCalendar from '../../components/AvailabilityCalendar/Availabi
 import PatientForm from '../../components/PatientForm/PatientForm.jsx';
 import AppointmentConfirmation from '../../components/AppointmentConfirmation/AppointmentConfirmation.jsx';
 import SearchIcon from '@mui/icons-material/Search';
+import logoGEM from '/gemplus-logo.png'; 
 
 const getInitials = (name) => {
     if (!name) return '?';
@@ -285,9 +286,9 @@ const AppointmentBookingPage = () => {
             <CssBaseline />
             <AppBar position="static" color="primary">
                 <Toolbar>
-                    <Box component="img" src="/public/favicon.png" sx={{ height: '36px', mr: 2 }} />
+                    <Box component="img" src="/public/gemplus-logo.png" sx={{ height: '36px', mr: 2 }} />
                     <Typography variant="h6" component="div" sx={{ flexGrow: 1 }}>
-                        GEM Plus - Solicitud de turnos
+                        Solicitud de turnos
                     </Typography>
                 </Toolbar>
             </AppBar>
