@@ -60,7 +60,7 @@ const corsOptions = {
 };
 
 console.log("Orígenes permitidos por CORS:", allowedOrigins);
-app.options('*', cors(corsOptions));
+app.options(/.*$/, cors(corsOptions));
 // Middlewares globales
 app.use(cors(corsOptions));
 app.use(express.json());
