@@ -24,17 +24,14 @@ const app = express();
 const PORT = process.env.PORT || 3001;
 const JWT_SECRET = process.env.JWT_SECRET;
 
-// Configuración de __dirname para ES Modules
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// Verificación de variables de entorno críticas al inicio
 if (!JWT_SECRET) {
     console.error("FATAL ERROR: JWT_SECRET no está definida en .env");
     process.exit(1);
 }
 
-// Configuración de CORS
 const allowedOrigins = [
     'http://localhost:5173',
     'http://gemplus.com.ar',
@@ -46,9 +43,6 @@ const allowedOrigins = [
 
 console.log("Orígenes permitidos por CORS:", allowedOrigins);
 
-// <-- INICIO DE LA CORRECCIÓN DE CORS -->
-// Se unifica toda la configuración de CORS en un solo middleware.
-// Esto maneja correctamente las peticiones normales y las 'preflight' (OPTIONS).
 app.use(cors({
   origin: function (origin, callback) {
     if (!origin || allowedOrigins.includes(origin)) {
@@ -63,39 +57,43 @@ app.use(cors({
   credentials: true,
   optionsSuccessStatus: 200
 }));
-// <-- FIN DE LA CORRECCIÓN DE CORS -->
 
-// Middlewares globales
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// Middleware para servir archivos estáticos de la carpeta 'uploads'
 app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
-// Middleware para servir archivos del almacenamiento persistente de forma dinámica
 const storageBasePath = process.env.STORAGE_PATH || '/data';
 const attachmentsPath = path.join(storageBasePath, 'clinical_attachments');
 app.use('/storage', express.static(attachmentsPath));
 
-// --- Montaje de Rutas de la API con Prefijos ---
-app.use('/api/public', publicRoutes);
-app.use('/api/auth', authRoutes);
-app.use('/api/users', userRoutes);
-app.use('/api/availability', availabilityRoutes);
-app.use('/api/patients', patientRoutes);
-app.use('/api/appointments', appointmentRoutes);
-app.use('/api/clinical-records', clinicalRecordRoutes);
-app.use('/api/statistics', statisticsRoutes);
-app.use('/api/notifications', notificationRoutes);
-app.use('/api/admin', adminRoutes);
-app.use('/api/catalogs', catalogRoutes);
-app.use('/api/locations', practiceLocationRoutes);
+// --- INICIO DE LA MODIFICACIÓN: APLICAR PREFIJO GLOBAL ---
+// Creamos un router principal para la API
+const apiRouter = express.Router();
 
-// Ruta de "health check" para verificar que el servidor está vivo
-app.get('/api/health', (req, res) => {
+// Montamos todas las rutas de la API bajo este router principal
+apiRouter.use('/public', publicRoutes);
+apiRouter.use('/auth', authRoutes);
+apiRouter.use('/users', userRoutes);
+apiRouter.use('/availability', availabilityRoutes);
+apiRouter.use('/patients', patientRoutes);
+apiRouter.use('/appointments', appointmentRoutes);
+apiRouter.use('/clinical-records', clinicalRecordRoutes);
+apiRouter.use('/statistics', statisticsRoutes);
+apiRouter.use('/notifications', notificationRoutes);
+apiRouter.use('/admin', adminRoutes);
+apiRouter.use('/catalogs', catalogRoutes);
+apiRouter.use('/locations', practiceLocationRoutes);
+
+// Ruta de "health check"
+apiRouter.get('/health', (req, res) => {
     res.status(200).json({ status: 'OK', message: 'Servidor GEM Plus está funcionando!' });
 });
 
-// --- Manejador de Errores Global ---
+// Montamos el router principal en el prefijo /api
+app.use('/api', apiRouter);
+// --- FIN DE LA MODIFICACIÓN ---
+
+
 app.use((err, req, res, next) => {
     console.error('--- ERROR GLOBAL CAPTURADO ---');
     console.error('Mensaje:', err.message);
@@ -112,7 +110,6 @@ app.use((err, req, res, next) => {
     });
 });
 
-// Iniciar el servidor
 app.listen(PORT, '0.0.0.0', () => {
     console.log(`Servidor backend GEM Plus corriendo en el puerto: ${PORT}`);
 });
