@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import {
     Container, Typography, Grid, Card, CardContent, CardActions, Button,
     Avatar, CircularProgress, Alert, Box
@@ -17,40 +17,7 @@ const getInitials = (name) => {
     return '?';
 };
 
-const ProfessionalSelectionStep = ({ onSelectProfessional, preSelectedProfessionalId }) => {
-    const [professionals, setProfessionals] = useState([]);
-    const [loading, setLoading] = useState(true);
-    const [error, setError] = useState(null);
-
-    useEffect(() => {
-        const fetchProfessionals = async () => {
-            setLoading(true);
-            setError(null);
-            try {
-                const response = await fetch(`${API_BASE_URL}/api/public/professionals`);
-                if (!response.ok) {
-                    throw new Error("No se pudieron cargar los profesionales disponibles.");
-                }
-                const data = await response.json();
-                setProfessionals(data);
-
-                if (preSelectedProfessionalId) {
-                    const foundProf = data.find(p => p.id === preSelectedProfessionalId);
-                    if (foundProf) {
-                        onSelectProfessional(foundProf.id, foundProf.fullName);
-                    } else {
-                        setError("El profesional especificado en la URL no fue encontrado o no está activo.");
-                    }
-                }
-            } catch (err) {
-                console.error("Error fetching professionals:", err);
-                setError(err.message || "Error al cargar la lista de profesionales. Intente más tarde.");
-            } finally {
-                setLoading(false);
-            }
-        };
-        fetchProfessionals();
-    }, [onSelectProfessional, preSelectedProfessionalId]);
+const ProfessionalSelectionStep = ({ onSelectProfessional, professionals, loading, error, specialty }) => {
 
     if (loading) {
         return (
@@ -66,13 +33,13 @@ const ProfessionalSelectionStep = ({ onSelectProfessional, preSelectedProfession
     }
 
     if (professionals.length === 0) {
-        return <Alert severity="info" sx={{ m: 2, textAlign: 'center' }}>No hay profesionales disponibles para reservar en este momento.</Alert>;
+        return <Alert severity="info" sx={{ m: 2, textAlign: 'center' }}>No hay profesionales disponibles para la especialidad "{specialty}" en este momento.</Alert>;
     }
 
     return (
         <Container sx={{ py: 4, textAlign: 'center' }}>
             <Typography variant="h4" gutterBottom>
-                Seleccione un Profesional
+                Seleccione un Profesional de {specialty}
             </Typography>
             <Typography variant="body1" color="text.secondary" sx={{ mb: 3 }}>
                 Elija al profesional con quien desea agendar su turno.
@@ -91,6 +58,15 @@ const ProfessionalSelectionStep = ({ onSelectProfessional, preSelectedProfession
                                 </Avatar>
                                 <Typography gutterBottom variant="h5" component="h2">{prof.fullName}</Typography>
                                 <Typography color="primary" sx={{mb:1}}>{prof.specialty}</Typography>
+                                
+                                {/* <-- INICIO DE LA MODIFICACIÓN: Mostrar Matrícula Profesional --> */}
+                                {prof.matriculaProfesional && (
+                                    <Typography variant="caption" color="text.secondary" display="block">
+                                        M.P.: {prof.matriculaProfesional}
+                                    </Typography>
+                                )}
+                                {/* <-- FIN DE LA MODIFICACIÓN --> */}
+
                                 <Typography variant="body2" color="text.secondary" sx={{mt:1}}>{prof.description || 'Sin descripción.'}</Typography>
                             </CardContent>
                             <CardActions sx={{ justifyContent: 'center' }}>

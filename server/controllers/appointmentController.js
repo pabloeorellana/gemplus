@@ -20,10 +20,14 @@ export const getAppointments = async (req, res) => {
                     DATE_FORMAT(DATE_ADD(a.dateTime, INTERVAL 30 MINUTE), '%Y-%m-%dT%H:%i:%SZ') AS end,
                     p.fullName AS title, a.status, a.reasonForVisit, a.professionalNotes,
                     a.patientId, p.dni AS patientDni, p.email AS patientEmail, p.phone AS patientPhone,
-                    u.fullName AS professionalName
+                    u.fullName AS professionalName,
+                    a.locationId,
+                    l.name as locationName, 
+                    l.address as locationAddress
                 FROM Appointments a
                 JOIN Patients p ON a.patientId = p.id
                 JOIN Users u ON a.professionalUserId = u.id
+                LEFT JOIN PracticeLocations l ON a.locationId = l.id
                 WHERE a.dateTime BETWEEN ? AND ?
             `;
             params = [`${startDate} 00:00:00`, `${endDate} 23:59:59`];
@@ -34,9 +38,13 @@ export const getAppointments = async (req, res) => {
                     DATE_FORMAT(a.dateTime, '%Y-%m-%dT%H:%i:%SZ') AS start, 
                     DATE_FORMAT(DATE_ADD(a.dateTime, INTERVAL 30 MINUTE), '%Y-%m-%dT%H:%i:%SZ') AS end,
                     p.fullName AS title, a.status, a.reasonForVisit, a.professionalNotes,
-                    a.patientId, p.dni AS patientDni, p.email AS patientEmail, p.phone AS patientPhone
+                    a.patientId, p.dni AS patientDni, p.email AS patientEmail, p.phone AS patientPhone,
+                    a.locationId,
+                    l.name as locationName, 
+                    l.address as locationAddress
                 FROM Appointments a
                 JOIN Patients p ON a.patientId = p.id
+                LEFT JOIN PracticeLocations l ON a.locationId = l.id
                 WHERE a.professionalUserId = ? AND a.dateTime BETWEEN ? AND ?
             `;
             params = [userId, `${startDate} 00:00:00`, `${endDate} 23:59:59`];
@@ -51,40 +59,72 @@ export const getAppointments = async (req, res) => {
 
 export const createManualAppointment = async (req, res) => {
     const professionalUserId = req.user.userId;
-    const { patientId, dateTime, reasonForVisit } = req.body;
-    if (!patientId || !dateTime) {
-        return res.status(400).json({ message: 'Se requiere paciente y fecha/hora.' });
+    const { patientId, dateTime, reasonForVisit, locationId } = req.body;
+    if (!patientId || !dateTime || !locationId) {
+        return res.status(400).json({ message: 'Se requiere paciente, fecha/hora y consultorio.' });
     }
+    
+    let connection;
     try {
+        connection = await pool.getConnection();
+        await connection.beginTransaction();
+
         const appointmentId = `appt_${uuidv4()}`;
         const appointmentDateTime = DateTime.fromISO(dateTime).toUTC().toFormat('yyyy-MM-dd HH:mm:ss');
 
-        await pool.query(
-            'INSERT INTO Appointments (id, dateTime, patientId, professionalUserId, reasonForVisit, status) VALUES (?, ?, ?, ?, ?, ?)',
-            [appointmentId, appointmentDateTime, patientId, professionalUserId, reasonForVisit || null, 'SCHEDULED']
+        await connection.query(
+            'INSERT INTO Appointments (id, dateTime, patientId, professionalUserId, reasonForVisit, status, locationId) VALUES (?, ?, ?, ?, ?, ?, ?)',
+            [appointmentId, appointmentDateTime, patientId, professionalUserId, reasonForVisit || null, 'SCHEDULED', locationId]
         );
-        const [patientData] = await pool.query('SELECT fullName FROM Patients WHERE id = ?', [patientId]);
-        const patientName = patientData.length > 0 ? patientData[0].fullName : 'Paciente';
         
-        // Usamos Luxon para formatear la fecha para la notificación
+        const [patientData] = await connection.query('SELECT fullName, email FROM Patients WHERE id = ?', [patientId]);
+        const patientName = patientData.length > 0 ? patientData[0].fullName : 'Paciente';
+
+        if (patientData.length > 0 && patientData[0].email) {
+            const [professionalData] = await connection.query('SELECT prefix, fullName FROM Users WHERE id = ?', [professionalUserId]);
+            const [locationData] = await connection.query('SELECT name, address, city FROM PracticeLocations WHERE id = ?', [locationId]);
+            
+            const professional = professionalData[0];
+            const location = locationData[0];
+            const fullProfessionalName = [professional.prefix, professional.fullName].filter(Boolean).join(' ');
+
+            await sendAppointmentConfirmationEmail(
+                patientData[0].email,
+                patientName,
+                fullProfessionalName,
+                DateTime.fromISO(dateTime).toJSDate(),
+                reasonForVisit,
+                location
+            );
+        }
+        
         const notificationMessage = `Turno manual añadido para ${patientName} el ${DateTime.fromISO(dateTime).setZone('America/Argentina/Buenos_Aires').toFormat("dd/MM 'a las' HH:mm", { locale: 'es' })}.`;
         
-        await pool.query(
+        await connection.query(
             'INSERT INTO Notifications (userId, message, link) VALUES (?, ?, ?)',
             [professionalUserId, notificationMessage, `/profesional/dashboard/agenda?appointmentId=${appointmentId}`]
         );
-        const [newAppointment] = await pool.query(`
-            SELECT a.id, DATE_FORMAT(a.dateTime, '%Y-%m-%dT%H:%i:%SZ') AS start, DATE_FORMAT(DATE_ADD(a.dateTime, INTERVAL 30 MINUTE), '%Y-%m-%dT%H:%i:%SZ') AS end, p.fullName AS title, a.status, a.reasonForVisit, a.professionalNotes, a.patientId, p.dni AS patientDni, p.email AS patientEmail, p.phone AS patientPhone
-            FROM Appointments a JOIN Patients p ON a.patientId = p.id WHERE a.id = ?`,
+        
+        await connection.commit();
+
+        const [newAppointment] = await connection.query(`
+            SELECT a.id, DATE_FORMAT(a.dateTime, '%Y-%m-%dT%H:%i:%SZ') AS start, DATE_FORMAT(DATE_ADD(a.dateTime, INTERVAL 30 MINUTE), '%Y-%m-%dT%H:%i:%SZ') AS end, p.fullName AS title, a.status, a.reasonForVisit, a.professionalNotes, a.patientId, p.dni AS patientDni, p.email AS patientEmail, p.phone AS patientPhone, a.locationId, l.name as locationName, l.address as locationAddress
+            FROM Appointments a 
+            JOIN Patients p ON a.patientId = p.id 
+            LEFT JOIN PracticeLocations l ON a.locationId = l.id
+            WHERE a.id = ?`,
             [appointmentId]
         );
         res.status(201).json(newAppointment[0]);
     } catch (error) {
+        if (connection) await connection.rollback();
         console.error('Error en createManualAppointment:', error);
         if (error.code === 'ER_DUP_ENTRY') {
             return res.status(400).json({ message: 'Ya existe un turno en este horario.' });
         }
         res.status(500).json({ message: 'Error del servidor al crear el turno' });
+    } finally {
+        if (connection) connection.release();
     }
 };
 
@@ -186,11 +226,11 @@ export const updateProfessionalNotes = async (req, res) => {
 };
 
 export const createPublicAppointment = async (req, res) => {
-    const { professionalUserId, dateTime, dni, firstName, lastName, email, phone, reasonForVisit } = req.body;
+    const { professionalUserId, dateTime, dni, firstName, lastName, email, phone, reasonForVisit, locationId } = req.body;
     const fullName = `${firstName || ''} ${lastName || ''}`.trim();
 
-     if (!professionalUserId || !dateTime || !dni || !fullName || !email) {
-         return res.status(400).json({ message: 'Faltan datos requeridos para la reserva.' });
+     if (!professionalUserId || !dateTime || !dni || !fullName || !email || !locationId) {
+         return res.status(400).json({ message: 'Faltan datos requeridos para la reserva, incluyendo el consultorio.' });
      }
 
      const connection = await pool.getConnection();
@@ -217,20 +257,25 @@ export const createPublicAppointment = async (req, res) => {
          const appointmentId = `appt_${uuidv4()}`;
          const appointmentDateTimeUTC = DateTime.fromISO(dateTime).toUTC().toFormat('yyyy-MM-dd HH:mm:ss');
          await connection.query(
-             'INSERT INTO Appointments (id, professionalUserId, dateTime, patientId, reasonForVisit) VALUES (?, ?, ?, ?, ?)',
-             [appointmentId, professionalUserId, appointmentDateTimeUTC, patientId, reasonForVisit || null]
+             'INSERT INTO Appointments (id, professionalUserId, dateTime, patientId, reasonForVisit, locationId) VALUES (?, ?, ?, ?, ?, ?)',
+             [appointmentId, professionalUserId, appointmentDateTimeUTC, patientId, reasonForVisit || null, locationId]
          );
-         const [professionalData] = await connection.query('SELECT fullName, email FROM Users WHERE id = ?', [professionalUserId]);
+         const [professionalData] = await connection.query('SELECT prefix, fullName FROM Users WHERE id = ?', [professionalUserId]);
+         const [locationData] = await connection.query('SELECT name, address, city FROM PracticeLocations WHERE id = ?', [locationId]);
 
          if (professionalData.length > 0) {
             const professional = professionalData[0];
+            const location = locationData.length > 0 ? locationData[0] : null;
             
+            const fullProfessionalName = [professional.prefix, professional.fullName].filter(Boolean).join(' ');
+
             await sendAppointmentConfirmationEmail(
                 email,
                 fullName,
-                professional.fullName,
+                fullProfessionalName,
                 DateTime.fromISO(dateTime).toJSDate(), 
-                reasonForVisit
+                reasonForVisit,
+                location
             );
          }
 

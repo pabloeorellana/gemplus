@@ -18,7 +18,8 @@ import DeleteForeverIcon from '@mui/icons-material/DeleteForever';
 import EditCalendarIcon from '@mui/icons-material/EditCalendar';
 import MedicalServicesIcon from '@mui/icons-material/MedicalServices';
 import AttachFileIcon from '@mui/icons-material/AttachFile';
-import { format, parseISO, setMinutes, setSeconds, setMilliseconds, startOfWeek, endOfWeek } from 'date-fns';
+import LocationOnOutlinedIcon from '@mui/icons-material/LocationOnOutlined';
+import { format, parseISO, setMinutes, setSeconds, setMilliseconds } from 'date-fns';
 import { es as fnsEsLocale } from 'date-fns/locale';
 import { LocalizationProvider, DateTimePicker, DatePicker } from '@mui/x-date-pickers';
 import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
@@ -35,7 +36,7 @@ const statusColors = {
     NO_SHOW: { backgroundColor: '#9e9e9e', color: 'white', label: 'No Asistió' },
 };
 const availableStatuses = Object.keys(statusColors);
-const initialNewAppointmentState = { patient: null, dateTime: null, reasonForVisit: '' };
+const initialNewAppointmentState = { patient: null, dateTime: null, reasonForVisit: '', locationId: '' };
 const initialNewPatientFormDataState = { dni: '', lastName: '', firstName: '', email: '', phone: '', birthDate: null };
 const initialClinicalRecordState = { title: '', content: '', pathology: '', attachment: null };
 
@@ -53,6 +54,8 @@ const AppointmentsView = () => {
     const [newDateTimeForReprogram, setNewDateTimeForReprogram] = useState(null);
     const [openDeleteAppointmentConfirmModal, setOpenDeleteAppointmentConfirmModal] = useState(false);
     const [statusFilter, setStatusFilter] = useState('ALL');
+    const [locationFilter, setLocationFilter] = useState('ALL');
+    const [locations, setLocations] = useState([]);
     const [professionalNotesModal, setProfessionalNotesModal] = useState('');
     const calendarRef = useRef(null);
     const { showNotification } = useNotification();
@@ -71,13 +74,15 @@ const AppointmentsView = () => {
 
     const fetchInitialData = useCallback(async () => {
         try {
-            const [patientsData, pathologiesData] = await Promise.all([
+            const [patientsData, pathologiesData, locationsData] = await Promise.all([
                 authFetch('/api/patients'),
-                authFetch('/api/catalogs/pathologies')
+                authFetch('/api/catalogs/pathologies'),
+                authFetch('/api/locations')
             ]);
             const formattedPatients = (patientsData || []).map(p => ({...p, fullName: p.fullName || `${p.firstName} ${p.lastName}`.trim()}));
             setExistingPatients(formattedPatients);
             setPathologies(pathologiesData || []);
+            setLocations(locationsData || []);
         } catch (err) { showNotification(err.message || "Error al cargar datos iniciales.", 'error'); }
     }, [showNotification]);
 
@@ -102,7 +107,10 @@ const AppointmentsView = () => {
                         status: appt.status, reasonForVisit: appt.reasonForVisit,
                         professionalNotes: appt.professionalNotes || '', patientId: appt.patientId,
                         patientDni: appt.patientDni, patientEmail: appt.patientEmail,
-                        patientPhone: appt.patientPhone
+                        patientPhone: appt.patientPhone,
+                        locationId: appt.locationId,
+                        locationName: appt.locationName,
+                        locationAddress: appt.locationAddress,
                     },
                     backgroundColor: statusColors[appt.status]?.backgroundColor || '#757575',
                     borderColor: statusColors[appt.status]?.backgroundColor || '#757575',
@@ -113,17 +121,21 @@ const AppointmentsView = () => {
                     formattedEvents = formattedEvents.filter(event => event.extendedProps.status === statusFilter);
                 }
                 
+                if (locationFilter !== 'ALL') {
+                    formattedEvents = formattedEvents.filter(event => event.extendedProps.locationId === locationFilter);
+                }
+                
                 successCallback(formattedEvents);
             })
             .catch(err => {
                 showNotification(err.message || "Error al cargar los turnos.", 'error');
                 failureCallback(err);
             });
-    }, [statusFilter, showNotification]);
+    }, [statusFilter, locationFilter, showNotification]);
 
     useEffect(() => {
         refreshAgenda();
-    }, [statusFilter]);
+    }, [statusFilter, locationFilter]);
 
     const handleEventClick = useCallback((clickInfo) => {
         const eventData = { ...clickInfo.event.extendedProps, id: clickInfo.event.id, title: clickInfo.event.title, start: clickInfo.event.startStr, end: clickInfo.event.endStr };
@@ -243,6 +255,7 @@ const AppointmentsView = () => {
         const errors = {};
         if (!newAppointmentData.patient) errors.patient = 'Seleccione un paciente.';
         if (!newAppointmentData.dateTime) errors.dateTime = 'Seleccione fecha y hora.';
+        if (!newAppointmentData.locationId) errors.locationId = 'Seleccione un consultorio.';
         setNewAppointmentErrors(errors);
         return Object.keys(errors).length === 0;
     };
@@ -250,8 +263,8 @@ const AppointmentsView = () => {
     const handleSaveNewAppointment = async () => {
         if (!validateNewAppointmentForm()) return;
         try {
-            const { patient, dateTime, reasonForVisit } = newAppointmentData;
-            await authFetch('/api/appointments/manual', { method: 'POST', body: JSON.stringify({ patientId: patient.id, dateTime: dateTime.toISOString(), reasonForVisit }) });
+            const { patient, dateTime, reasonForVisit, locationId } = newAppointmentData;
+            await authFetch('/api/appointments/manual', { method: 'POST', body: JSON.stringify({ patientId: patient.id, dateTime: dateTime.toISOString(), reasonForVisit, locationId }) });
             showNotification('Turno manual creado exitosamente.', 'success');
             handleCloseNewAppointmentModal();
             refreshAgenda();
@@ -351,6 +364,13 @@ const AppointmentsView = () => {
                     <Typography variant="h5" gutterBottom component="div" sx={{m:0}}>Mi Agenda de Turnos</Typography>
                     <Stack direction="row" spacing={1} alignItems="center">
                         <FormControl size="small" sx={{minWidth: 180}}>
+                            <InputLabel>Filtrar por Consultorio</InputLabel>
+                            <Select value={locationFilter} label="Filtrar por Consultorio" onChange={(e) => setLocationFilter(e.target.value)}>
+                                <MenuItem value="ALL">Todos los Consultorios</MenuItem>
+                                {locations.map(loc => (<MenuItem key={loc.id} value={loc.id}>{loc.name}</MenuItem>))}
+                            </Select>
+                        </FormControl>
+                        <FormControl size="small" sx={{minWidth: 180}}>
                             <InputLabel>Filtrar por Estado</InputLabel>
                             <Select value={statusFilter} label="Filtrar por Estado" onChange={(e) => setStatusFilter(e.target.value)}>
                                 <MenuItem value="ALL">Todos los turnos</MenuItem>
@@ -361,7 +381,36 @@ const AppointmentsView = () => {
                     </Stack>
                 </Stack>
                 
-                <style>{`.fc-event-custom { border-radius: 6px !important; padding: 4px 6px !important; font-weight: 500 !important; cursor: pointer; } .fc .fc-toolbar-title { font-size: 1.5em; color: #194da0; } .fc .fc-button-primary { background-color: #194da0 !important; border-color: #194da0 !important; } .fc .fc-button-primary:not(:disabled).fc-button-active, .fc .fc-button-primary:not(:disabled):active { background-color: #2e5ec0 !important; border-color: #2e5ec0 !important; } .fc-daygrid-day.fc-day-today { background-color: rgba(25, 118, 210, 0.1) !important; } .tippy-box { border-radius: 8px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; }`}</style>
+                {/* <-- INICIO DE LA CORRECCIÓN DE ESTILOS --> */}
+                <style>{`
+                    .fc-event-custom { 
+                        border-radius: 6px !important; 
+                        padding: 4px 6px !important; 
+                        font-weight: 500 !important; 
+                        cursor: pointer; 
+                    } 
+                    .fc .fc-toolbar-title { 
+                        font-size: 1.5em; 
+                        color: #015E5E; /* primary.dark */
+                    } 
+                    .fc .fc-button-primary { 
+                        background-color: #028184 !important; /* primary.main */
+                        border-color: #028184 !important; 
+                    } 
+                    .fc .fc-button-primary:not(:disabled).fc-button-active, 
+                    .fc .fc-button-primary:not(:disabled):active { 
+                        background-color: #015E5E !important; /* primary.dark */
+                        border-color: #015E5E !important; 
+                    } 
+                    .fc-daygrid-day.fc-day-today { 
+                        background-color: #A8E6CF20 !important; /* secondary.main con opacidad */
+                    } 
+                    .tippy-box { 
+                        border-radius: 8px; 
+                        font-family: 'Poppins', sans-serif; 
+                    }
+                `}</style>
+                {/* <-- FIN DE LA CORRECCIÓN DE ESTILOS --> */}
                 
                 <FullCalendar
                     ref={calendarRef}
@@ -383,7 +432,7 @@ const AppointmentsView = () => {
                     nowIndicator={true}
                     eventDidMount={(info) => {
                         tippy(info.el, {
-                            content: `<div style="padding:4px;"><div><strong>Paciente:</strong> ${info.event.title}</div><div><strong>DNI:</strong> ${info.event.extendedProps.patientDni}</div><div style="white-space: pre-wrap;"><strong>Motivo:</strong> ${info.event.extendedProps.reasonForVisit || 'N/A'}</div></div>`,
+                            content: `<div style="padding:4px;"><div><strong>Paciente:</strong> ${info.event.title}</div><div><strong>Consultorio:</strong> ${info.event.extendedProps.locationName || 'N/A'}</div><div style="white-space: pre-wrap;"><strong>Motivo:</strong> ${info.event.extendedProps.reasonForVisit || 'N/A'}</div></div>`,
                             allowHTML: true,
                         });
                     }}
@@ -416,6 +465,17 @@ const AppointmentsView = () => {
                                     <Typography><strong>Teléfono:</strong> {selectedEvent.patientPhone || 'N/A'}</Typography>
                                     <Typography><strong>Email:</strong> {selectedEvent.patientEmail}</Typography>
                                     <Typography><strong>Fecha y Hora:</strong> {format(parseISO(selectedEvent.start), "dd/MM/yyyy 'a las' HH:mm 'hs.'")}</Typography>
+                                    
+                                    {selectedEvent.locationName && (
+                                        <Box>
+                                            <Typography><strong>Consultorio:</strong></Typography>
+                                            <Stack direction="row" spacing={1} alignItems="center" sx={{ pl: 1, color: 'text.secondary' }}>
+                                                <LocationOnOutlinedIcon fontSize="small"/>
+                                                <Typography variant="body2">{selectedEvent.locationName} ({selectedEvent.locationAddress})</Typography>
+                                            </Stack>
+                                        </Box>
+                                    )}
+
                                     <Box>
                                         <Typography><strong>Motivo de la consulta:</strong></Typography>
                                         <Typography paragraph sx={{ pl:1, fontStyle: 'italic', color: 'text.secondary', mb:0 }}>{selectedEvent.reasonForVisit || 'No especificado'}</Typography>
@@ -485,6 +545,14 @@ const AppointmentsView = () => {
                                     renderInput={(params) => (<TextField {...params} label="Buscar Paciente *" error={!!newAppointmentErrors.patient} helperText={newAppointmentErrors.patient} />)}
                                 />
                                 {!newAppointmentData.patient && (<Button size="small" startIcon={<PersonAddIcon />} onClick={handleOpenCreatePatientSubModal} sx={{ mt: 1 }}>Añadir Nuevo Paciente</Button>)}
+                            </Grid>
+                            <Grid item xs={12}>
+                                <FormControl fullWidth error={!!newAppointmentErrors.locationId}>
+                                    <InputLabel>Consultorio *</InputLabel>
+                                    <Select name="locationId" value={newAppointmentData.locationId || ''} label="Consultorio *" onChange={handleNewAppointmentChange}>
+                                        {locations.map(loc => (<MenuItem key={loc.id} value={loc.id}>{loc.name}</MenuItem>))}
+                                    </Select>
+                                </FormControl>
                             </Grid>
                             <Grid item xs={12}><DateTimePicker label="Fecha y Hora del Turno *" value={newAppointmentData.dateTime} onChange={handleNewAppointmentDateChange} renderInput={(params) => <TextField {...params} fullWidth error={!!newAppointmentErrors.dateTime} helperText={newAppointmentErrors.dateTime} />} ampm={false} minDateTime={new Date()} /></Grid>
                             <Grid item xs={12}><TextField name="reasonForVisit" label="Motivo de la Consulta (Opcional)" value={newAppointmentData.reasonForVisit} onChange={handleNewAppointmentChange} fullWidth multiline rows={3}/></Grid>

@@ -4,7 +4,8 @@ import { useAuth } from '../../../context/AuthContext';
 import {
     Box, Typography, Paper, Grid, TextField, Button, CircularProgress,
     Alert, Avatar, Stack, Dialog, DialogTitle, DialogContent,
-    DialogActions, InputAdornment, IconButton, Badge
+    DialogActions, InputAdornment, IconButton, Badge, FormControl, InputLabel, Select, MenuItem,
+    FormControlLabel, Switch // <-- AÑADIDO: Importar Switch
 } from '@mui/material';
 import EditIcon from '@mui/icons-material/Edit';
 import Visibility from '@mui/icons-material/Visibility';
@@ -17,10 +18,13 @@ const ProfileView = () => {
     const { showNotification } = useNotification();
     const { authUser, login: updateAuthContextUser, loadingAuth } = useAuth();
     const [profileData, setProfileData] = useState({
-        dni: '', fullName: '', email: '', phone: '', specialty: '',
-        description: '', profileImageUrl: '',
+        usuario: '', firstName: '', lastName: '', prefix: '', email: '', phone: '', specialty: '',
+        description: '', profileImageUrl: '', dni: '', matriculaProfesional: '',
+        receivesDailyAgenda: true // <-- AÑADIDO: Estado para la preferencia
     });
     const [initialProfileData, setInitialProfileData] = useState({});
+    const [specialties, setSpecialties] = useState([]);
+    const [prefixes, setPrefixes] = useState([]);
     const [loading, setLoading] = useState(true);
     const [isEditing, setIsEditing] = useState(false);
     const [error, setError] = useState('');
@@ -46,19 +50,39 @@ const ProfileView = () => {
         setError('');
         try {
             const userDataPromise = authFetch(`/api/users/me`);
-            let professionalDataPromise = authUser.user.role === 'PROFESSIONAL'
-                ? authFetch(`/api/users/professionals/me`)
-                : Promise.resolve(null);
+            let professionalDataPromise = Promise.resolve(null);
+            let specialtiesPromise = Promise.resolve([]);
+            let prefixesPromise = authFetch('/api/catalogs/prefixes');
 
-            const [userData, professionalDataResponse] = await Promise.all([userDataPromise, professionalDataPromise]);
+            if (authUser.user.role === 'PROFESSIONAL') {
+                professionalDataPromise = authFetch(`/api/users/professionals/me`);
+                specialtiesPromise = authFetch('/api/catalogs/specialties');
+            }
+
+            const [userData, professionalDataResponse, specialtiesData, prefixesData] = await Promise.all([
+                userDataPromise,
+                professionalDataPromise,
+                specialtiesPromise,
+                prefixesPromise
+            ]);
+            
             const professionalSpecificData = professionalDataResponse || {};
+            setSpecialties(specialtiesData || []);
+            setPrefixes(prefixesData || []);
 
             const dataToSet = {
-                dni: userData.dni || '', fullName: userData.fullName || '',
+                usuario: userData.usuario || '',
+                fullName: userData.fullName || '',
+                firstName: userData.firstName || '',
+                lastName: userData.lastName || '',
+                prefix: userData.prefix || '',
                 email: userData.email || '', phone: userData.phone || '',
                 specialty: professionalSpecificData.specialty || '',
                 description: professionalSpecificData.description || '',
                 profileImageUrl: userData.profileImageUrl || '',
+                dni: userData.dni || '',
+                matriculaProfesional: professionalSpecificData.matriculaProfesional || '',
+                receivesDailyAgenda: userData.receivesDailyAgenda, // <-- AÑADIDO: Cargar la preferencia
             };
             setProfileData(dataToSet);
             setInitialProfileData(dataToSet);
@@ -75,8 +99,10 @@ const ProfileView = () => {
     }, [fetchProfile]);
 
     const handleChange = (event) => {
-        const { name, value } = event.target;
-        setProfileData(prev => ({ ...prev, [name]: value }));
+        const { name, value, type, checked } = event.target;
+        // <-- MODIFICADO: Manejar el valor booleano del Switch
+        const val = type === 'checkbox' ? checked : value;
+        setProfileData(prev => ({ ...prev, [name]: val }));
         setError('');
     };
     
@@ -128,12 +154,17 @@ const ProfileView = () => {
         setError('');
 
         const formData = new FormData();
-        formData.append('fullName', profileData.fullName);
+        formData.append('firstName', profileData.firstName);
+        formData.append('lastName', profileData.lastName);
+        formData.append('prefix', profileData.prefix);
         formData.append('email', profileData.email);
         formData.append('phone', profileData.phone);
+        formData.append('dni', profileData.dni);
+        formData.append('receivesDailyAgenda', profileData.receivesDailyAgenda); // <-- AÑADIDO: Enviar la preferencia al backend
         if (authUser?.user?.role === 'PROFESSIONAL') {
             formData.append('specialty', profileData.specialty);
             formData.append('description', profileData.description);
+            formData.append('matriculaProfesional', profileData.matriculaProfesional);
         }
         if (selectedImageFile) {
             formData.append('profileImage', selectedImageFile);
@@ -221,9 +252,17 @@ const ProfileView = () => {
         return '?';
     };
 
+    const getDisplayName = () => {
+        const { prefix, fullName } = profileData;
+        if (prefix && prefix !== 'Sin prefijo') {
+            return `${prefix} ${fullName}`;
+        }
+        return fullName;
+    };
+
     if (loadingAuth) return <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '50vh' }}><CircularProgress /><Typography sx={{ml: 2}}>Verificando autenticación...</Typography></Box>;
     if (error) return <Alert severity="warning" sx={{ m: 2 }}>{error}</Alert>;
-    if (loading && !initialProfileData.dni) return <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '50vh' }}><CircularProgress /><Typography sx={{ml: 2}}>Cargando perfil...</Typography></Box>;
+    if (loading && !initialProfileData.usuario) return <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '50vh' }}><CircularProgress /><Typography sx={{ml: 2}}>Cargando perfil...</Typography></Box>;
     if (!authUser && !loadingAuth) return <Alert severity="error" sx={{ m: 2 }}>Error de autenticación. Por favor, intente iniciar sesión de nuevo.</Alert>;
 
     return (
@@ -248,12 +287,83 @@ const ProfileView = () => {
                                 </Avatar>
                             </Badge>
                         </Grid>
-                        <Grid item xs={12}><TextField label="Usuario" value={profileData.dni} fullWidth InputProps={{ readOnly: true }} variant="filled" helperText="El usuario no puede ser modificado."/></Grid>
-                        <Grid item xs={12}><TextField required fullWidth name="fullName" label="Nombre Completo" value={profileData.fullName} onChange={handleChange} disabled={!isEditing || loading} variant={isEditing ? "outlined" : "filled"} InputProps={{ readOnly: !isEditing }}/></Grid>
+                        <Grid item xs={12}><TextField label="Usuario" value={profileData.usuario} fullWidth InputProps={{ readOnly: true }} variant="filled" helperText="El usuario no puede ser modificado."/></Grid>
+                        
+                        {isEditing ? (
+                            <>
+                                <Grid item xs={12}>
+                                    <FormControl fullWidth>
+                                        <InputLabel id="profile-prefix-label">Prefijo</InputLabel>
+                                        <Select
+                                            labelId="profile-prefix-label" name="prefix"
+                                            value={profileData.prefix || ''} label="Prefijo"
+                                            onChange={handleChange}
+                                        >
+                                            <MenuItem value=""><em>Ninguno</em></MenuItem>
+                                            {prefixes.map(p => <MenuItem key={p.id} value={p.name}>{p.name}</MenuItem>)}
+                                        </Select>
+                                    </FormControl>
+                                </Grid>
+                                <Grid item xs={12}>
+                                    <TextField required fullWidth name="lastName" label="Apellido" value={profileData.lastName} onChange={handleChange} disabled={!isEditing || loading} />
+                                </Grid>
+                                <Grid item xs={12}>
+                                    <TextField required fullWidth name="firstName" label="Nombre" value={profileData.firstName} onChange={handleChange} disabled={!isEditing || loading} />
+                                </Grid>
+                            </>
+                        ) : (
+                            <Grid item xs={12}>
+                                <TextField fullWidth label="Nombre Completo" value={getDisplayName()} variant="filled" InputProps={{ readOnly: true }} />
+                            </Grid>
+                        )}
+
                         <Grid item xs={12}><TextField required fullWidth name="email" label="Correo Electrónico" type="email" value={profileData.email} onChange={handleChange} disabled={!isEditing || loading} variant={isEditing ? "outlined" : "filled"} InputProps={{ readOnly: !isEditing }}/></Grid>
                         <Grid item xs={12}><TextField fullWidth name="phone" label="Teléfono" value={profileData.phone} onChange={handleChange} disabled={!isEditing || loading} variant={isEditing ? "outlined" : "filled"} InputProps={{ readOnly: !isEditing }}/></Grid>
-                        <Grid item xs={12}><TextField fullWidth name="specialty" label="Especialidad" value={profileData.specialty} onChange={handleChange} disabled={!isEditing || loading} variant={isEditing ? "outlined" : "filled"} InputProps={{ readOnly: !isEditing }}/></Grid>
+                        
+                        <Grid item xs={12}><TextField fullWidth name="dni" label="DNI" value={profileData.dni || ''} onChange={handleChange} disabled={!isEditing || loading} variant={isEditing ? "outlined" : "filled"} InputProps={{ readOnly: !isEditing }}/></Grid>
+                        {authUser.user.role === 'PROFESSIONAL' && (
+                             <Grid item xs={12}><TextField fullWidth name="matriculaProfesional" label="Matrícula Profesional" value={profileData.matriculaProfesional || ''} onChange={handleChange} disabled={!isEditing || loading} variant={isEditing ? "outlined" : "filled"} InputProps={{ readOnly: !isEditing }}/></Grid>
+                        )}
+                        
+                        {authUser.user.role === 'PROFESSIONAL' && (
+                            <Grid item xs={12}>
+                                {isEditing ? (
+                                    <FormControl fullWidth>
+                                        <InputLabel id="profile-specialty-select-label">Especialidad</InputLabel>
+                                        <Select
+                                            labelId="profile-specialty-select-label"
+                                            name="specialty" value={profileData.specialty || ''}
+                                            label="Especialidad" onChange={handleChange}
+                                            disabled={loading}
+                                        >
+                                            <MenuItem value=""><em>Ninguna</em></MenuItem>
+                                            {specialties.map((spec) => (<MenuItem key={spec.id} value={spec.name}>{spec.name}</MenuItem>))}
+                                        </Select>
+                                    </FormControl>
+                                ) : (
+                                    <TextField fullWidth name="specialty" label="Especialidad" value={profileData.specialty || 'No especificada'} variant="filled" InputProps={{ readOnly: true }}/>
+                                )}
+                            </Grid>
+                        )}
+
                         <Grid item xs={12}><TextField fullWidth name="description" label="Descripción Profesional" multiline rows={4} value={profileData.description} onChange={handleChange} disabled={!isEditing || loading} variant={isEditing ? "outlined" : "filled"} InputProps={{ readOnly: !isEditing }}/></Grid>
+                        
+                        {/* <-- INICIO DE LA MODIFICACIÓN: Switch para la agenda diaria --> */}
+                        <Grid item xs={12}>
+                            <FormControlLabel
+                                control={
+                                    <Switch
+                                        name="receivesDailyAgenda"
+                                        checked={profileData.receivesDailyAgenda}
+                                        onChange={handleChange}
+                                        disabled={!isEditing || loading}
+                                    />
+                                }
+                                label="Recibir agenda diaria por email"
+                            />
+                        </Grid>
+                        {/* <-- FIN DE LA MODIFICACIÓN --> */}
+                        
                         <Grid item xs={12} sx={{ mt: 2 }}>
                             <Stack direction="row" spacing={2} justifyContent="flex-end" alignItems="center">
                                 <Button variant="text" onClick={handleOpenPasswordModal} disabled={isEditing}>Cambiar Contraseña</Button>

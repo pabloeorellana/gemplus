@@ -4,7 +4,7 @@ import {
     Box, Typography, Paper, Tabs, Tab, Button, Grid, TextField,
     IconButton, List, ListItem, ListItemText,
     Select, MenuItem, FormControl, InputLabel, Checkbox, FormControlLabel,
-    CircularProgress, Alert
+    CircularProgress, Alert, FormHelperText
 } from '@mui/material';
 import AddCircleOutlineIcon from '@mui/icons-material/AddCircleOutline';
 import DeleteIcon from '@mui/icons-material/Delete';
@@ -24,35 +24,57 @@ function TabPanel(props) {
     );
 }
 
-const RegularScheduleManager = ({ regularSchedules, onAddSchedule, onRemoveSchedule }) => {
+const RegularScheduleManager = ({ regularSchedules, onAddSchedule, onRemoveSchedule, locations }) => {
     const daysOfWeek = ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Domingo"];
-    const [day, setDay] = useState(1); // 1 = Lunes
+    const [day, setDay] = useState(1);
     const [startTime, setStartTime] = useState(null);
     const [endTime, setEndTime] = useState(null);
     const [slotDuration, setSlotDuration] = useState(30);
+    const [locationId, setLocationId] = useState('');
+    const [formError, setFormError] = useState('');
 
     const handleAddClick = () => {
-        if (startTime && endTime && startTime < endTime) {
-            const newSchedulePayload = {
-                dayOfWeek: day,
-                startTime: format(startTime, 'HH:mm:ss'),
-                endTime: format(endTime, 'HH:mm:ss'),
-                slotDurationMinutes: parseInt(slotDuration, 10)
-            };
-            onAddSchedule(newSchedulePayload);
-            setStartTime(null);
-            setEndTime(null);
-        } else {
-            alert("Por favor, seleccione una hora de inicio y fin válidas, donde el inicio sea anterior al fin.");
+        setFormError('');
+        if (!locationId) {
+            setFormError("Debe seleccionar un consultorio.");
+            return;
         }
+        if (!startTime || !endTime || startTime >= endTime) {
+            setFormError("Seleccione una hora de inicio y fin válidas.");
+            return;
+        }
+
+        const newSchedulePayload = {
+            dayOfWeek: day,
+            startTime: format(startTime, 'HH:mm:ss'),
+            endTime: format(endTime, 'HH:mm:ss'),
+            slotDurationMinutes: parseInt(slotDuration, 10),
+            locationId: locationId
+        };
+        onAddSchedule(newSchedulePayload);
+        setStartTime(null);
+        setEndTime(null);
     };
 
     return (
         <Box>
             <Typography variant="h6" gutterBottom>Definir Horario Semanal Regular</Typography>
-            <Grid container spacing={2} alignItems="flex-end" sx={{mb: 3}}>
-                <Grid item xs={12} sm={6} md={3}>
-                    <FormControl fullWidth>
+            <Grid container spacing={2} alignItems="center" sx={{mb: 3}}>
+                 <Grid item xs={12} sm={6} md={3}>
+                    {/* <-- INICIO DE LA CORRECCIÓN DE LAYOUT --> */}
+                    <FormControl fullWidth error={!!formError && !locationId} sx={{ minWidth: 220 }}>
+                        <InputLabel>Consultorio *</InputLabel>
+                        <Select value={locationId} label="Consultorio *" onChange={(e) => setLocationId(e.target.value)}>
+                            {locations.map((loc) => (
+                                <MenuItem key={loc.id} value={loc.id}>{loc.name}</MenuItem>
+                            ))}
+                        </Select>
+                         {formError && !locationId && <FormHelperText>{formError}</FormHelperText>}
+                    </FormControl>
+                    {/* <-- FIN DE LA CORRECCIÓN DE LAYOUT --> */}
+                </Grid>
+                <Grid item xs={12} sm={6} md={2}>
+                    <FormControl fullWidth disabled={!locationId}>
                         <InputLabel>Día</InputLabel>
                         <Select value={day} label="Día" onChange={(e) => setDay(e.target.value)}>
                             {daysOfWeek.map((d, index) => (
@@ -61,52 +83,29 @@ const RegularScheduleManager = ({ regularSchedules, onAddSchedule, onRemoveSched
                         </Select>
                     </FormControl>
                 </Grid>
-                <Grid item xs={12} sm={6} md={2}>
-                    <TimePicker
-                        label="Hora Inicio" value={startTime}
-                        onChange={setStartTime}
-                        renderInput={(params) => <TextField {...params} fullWidth />}
-                        ampm={false}
-                    />
+                <Grid item xs={6} sm={4} md={2}>
+                    <TimePicker label="Hora Inicio" value={startTime} onChange={setStartTime} renderInput={(params) => <TextField {...params} fullWidth />} ampm={false} disabled={!locationId}/>
                 </Grid>
-                <Grid item xs={12} sm={6} md={2}>
-                     <TimePicker
-                        label="Hora Fin" value={endTime}
-                        onChange={setEndTime}
-                        renderInput={(params) => <TextField {...params} fullWidth />}
-                        ampm={false}
-                    />
+                <Grid item xs={6} sm={4} md={2}>
+                     <TimePicker label="Hora Fin" value={endTime} onChange={setEndTime} renderInput={(params) => <TextField {...params} fullWidth />} ampm={false} minTime={startTime} disabled={!locationId}/>
                 </Grid>
-                <Grid item xs={12} sm={6} md={3}>
-                    <TextField
-                        label="Duración Turno (min)" type="number"
-                        value={slotDuration} onChange={(e) => setSlotDuration(e.target.value)}
-                        fullWidth inputProps={{ min: 15, step: 15 }}
-                    />
+                <Grid item xs={12} sm={4} md={2}>
+                    <TextField label="Duración (min)" type="number" value={slotDuration} onChange={(e) => setSlotDuration(e.target.value)} fullWidth inputProps={{ min: 15, step: 15 }} disabled={!locationId}/>
                 </Grid>
-                <Grid item xs={12} md={2}>
-                    <Button variant="contained" onClick={handleAddClick} startIcon={<AddCircleOutlineIcon />} fullWidth>
-                        Añadir
-                    </Button>
+                <Grid item xs={12} sm={12} md={1}>
+                    <Button variant="contained" onClick={handleAddClick} startIcon={<AddCircleOutlineIcon />} fullWidth disabled={!locationId}>Añadir</Button>
                 </Grid>
+                {formError && !!locationId && <Grid item xs={12}><FormHelperText error>{formError}</FormHelperText></Grid>}
             </Grid>
 
             <Typography variant="subtitle1" sx={{mt: 2, mb:1}}>Horarios Configurados:</Typography>
             {regularSchedules.length === 0 && <Typography color="text.secondary">No hay horarios regulares definidos.</Typography>}
             <List>
                 {regularSchedules.map((schedule) => (
-                    <ListItem
-                        key={schedule.id}
-                        divider
-                        secondaryAction={
-                            <IconButton edge="end" aria-label="delete" onClick={() => onRemoveSchedule(schedule.id)}>
-                                <DeleteIcon />
-                            </IconButton>
-                        }
-                    >
+                    <ListItem key={schedule.id} divider secondaryAction={<IconButton edge="end" aria-label="delete" onClick={() => onRemoveSchedule(schedule.id)}><DeleteIcon /></IconButton>}>
                         <ListItemText
                             primary={`${daysOfWeek[schedule.dayOfWeek - 1]}: ${schedule.startTime.substring(0,5)} - ${schedule.endTime.substring(0,5)}`}
-                            secondary={`Duración de turnos: ${schedule.slotDurationMinutes} min`}
+                            secondary={`${schedule.locationName} | Duración: ${schedule.slotDurationMinutes} min`}
                         />
                     </ListItem>
                 ))}
@@ -188,11 +187,13 @@ const TimeBlocksManager = ({ timeBlocks, onAddBlock, onRemoveBlock }) => {
     );
 };
 
+
 const AvailabilityView = () => {
     const [currentTab, setCurrentTab] = useState(0);
     const [regularSchedules, setRegularSchedules] = useState([]);
     const [timeBlocks, setTimeBlocks] = useState([]);
-    const [loading, setLoading] = useState(false);
+    const [locations, setLocations] = useState([]);
+    const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
     const { showNotification } = useNotification();
 
@@ -200,13 +201,15 @@ const AvailabilityView = () => {
         setLoading(true);
         setError('');
         try {
-            const [schedulesResponse, blocksResponse] = await Promise.all([
+            const [schedulesResponse, blocksResponse, locationsResponse] = await Promise.all([
                 authFetch('/api/availability/regular'),
-                authFetch('/api/availability/blocks')
+                authFetch('/api/availability/blocks'),
+                authFetch('/api/locations')
             ]);
 
             setRegularSchedules(schedulesResponse.sort((a,b) => a.dayOfWeek - b.dayOfWeek || a.startTime.localeCompare(b.startTime)) || []);
             setTimeBlocks(blocksResponse.sort((a,b) => new Date(a.startDateTime) - new Date(b.startDateTime)) || []);
+            setLocations(locationsResponse || []);
         } catch (error) {
             console.error("Error cargando datos de disponibilidad:", error);
             setError(error.message || "Error al cargar datos.");
@@ -224,14 +227,15 @@ const AvailabilityView = () => {
     const handleAddRegularSchedule = async (newSchedulePayload) => {
         setError('');
         try {
-            const savedSchedule = await authFetch('/api/availability/regular', {
+            await authFetch('/api/availability/regular', {
                 method: 'POST',
                 body: JSON.stringify(newSchedulePayload),
             });
+            showNotification('Horario añadido correctamente.', 'success');
             fetchAvailabilityData();
         } catch (error) {
             console.error("Error añadiendo horario regular:", error);
-            setError(error.message || "Error al guardar horario.");
+            showNotification(error.message || "Error al guardar horario.", 'error');
         }
     };
 
@@ -253,10 +257,11 @@ const AvailabilityView = () => {
                 method: 'POST',
                 body: JSON.stringify(newBlockPayload),
             });
+            showNotification('Bloqueo de tiempo añadido.', 'success');
             fetchAvailabilityData();
         } catch (error) {
             console.error("Error añadiendo bloqueo:", error);
-            setError(error.message || "Error al guardar bloqueo.");
+            showNotification(error.message || "Error al guardar bloqueo.", 'error');
         }
     };
 
@@ -265,10 +270,11 @@ const AvailabilityView = () => {
         if (window.confirm("¿Está seguro de que desea eliminar este bloqueo de tiempo?")) {
             try {
                 await authFetch(`/api/availability/blocks/${blockId}`, { method: 'DELETE' });
+                showNotification('Bloqueo de tiempo eliminado.', 'info');
                 fetchAvailabilityData();
             } catch (error) {
                 console.error("Error eliminando bloqueo:", error);
-                setError(error.message || "Error al eliminar bloqueo.");
+                showNotification(error.message || "Error al eliminar bloqueo.", 'error');
             }
         }
     };
@@ -291,6 +297,7 @@ const AvailabilityView = () => {
                                 regularSchedules={regularSchedules}
                                 onAddSchedule={handleAddRegularSchedule}
                                 onRemoveSchedule={handleRemoveRegularSchedule}
+                                locations={locations}
                             />
                         </TabPanel>
                         <TabPanel value={currentTab} index={1}>

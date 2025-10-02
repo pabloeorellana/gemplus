@@ -5,7 +5,11 @@ export const getRegularSchedules = async (req, res) => {
     const professionalUserId = req.user.userId;
     try {
         const [schedules] = await pool.query(
-            'SELECT id, dayOfWeek, startTime, endTime, slotDurationMinutes FROM ProfessionalAvailability WHERE professionalUserId = ? ORDER BY dayOfWeek, startTime',
+            `SELECT pa.id, pa.dayOfWeek, pa.startTime, pa.endTime, pa.slotDurationMinutes, pa.locationId, pl.name as locationName 
+             FROM ProfessionalAvailability pa
+             JOIN PracticeLocations pl ON pa.locationId = pl.id
+             WHERE pa.professionalUserId = ? 
+             ORDER BY pa.dayOfWeek, pa.startTime`,
             [professionalUserId]
         );
         res.json(schedules);
@@ -17,22 +21,28 @@ export const getRegularSchedules = async (req, res) => {
 
 export const addRegularSchedule = async (req, res) => {
     const professionalUserId = req.user.userId;
-    const { dayOfWeek, startTime, endTime, slotDurationMinutes } = req.body;
-    if (dayOfWeek === undefined || !startTime || !endTime || !slotDurationMinutes) {
-        return res.status(400).json({ message: 'Todos los campos son requeridos: día, hora inicio, hora fin, duración.' });
+    const { dayOfWeek, startTime, endTime, slotDurationMinutes, locationId } = req.body;
+    if (dayOfWeek === undefined || !startTime || !endTime || !slotDurationMinutes || !locationId) {
+        return res.status(400).json({ message: 'Todos los campos son requeridos: día, hora inicio, hora fin, duración y consultorio.' });
     }
     try {
         const [result] = await pool.query(
-            'INSERT INTO ProfessionalAvailability (professionalUserId, dayOfWeek, startTime, endTime, slotDurationMinutes) VALUES (?, ?, ?, ?, ?)',
-            [professionalUserId, dayOfWeek, startTime, endTime, slotDurationMinutes]
+            'INSERT INTO ProfessionalAvailability (professionalUserId, dayOfWeek, startTime, endTime, slotDurationMinutes, locationId) VALUES (?, ?, ?, ?, ?, ?)',
+            [professionalUserId, dayOfWeek, startTime, endTime, slotDurationMinutes, locationId]
         );
         const newScheduleId = result.insertId;
-        const [newSchedule] = await pool.query('SELECT * FROM ProfessionalAvailability WHERE id = ?', [newScheduleId]);
+        const [newSchedule] = await pool.query(
+            `SELECT pa.*, pl.name as locationName 
+             FROM ProfessionalAvailability pa
+             JOIN PracticeLocations pl ON pa.locationId = pl.id
+             WHERE pa.id = ?`, 
+            [newScheduleId]
+        );
         res.status(201).json(newSchedule[0]);
     } catch (error) {
         console.error('Error en addRegularSchedule:', error);
         if (error.code === 'ER_DUP_ENTRY') {
-            return res.status(400).json({ message: 'Ya existe un horario configurado para ese día y hora de inicio.' });
+            return res.status(400).json({ message: 'Ya existe un horario configurado para ese día, hora y consultorio.' });
         }
         res.status(500).json({ message: 'Error del servidor al añadir horario regular' });
     }
@@ -141,9 +151,9 @@ export const removeTimeBlock = async (req, res) => {
 };
 
 export const getAvailability = async (req, res) => {
-    const { date, professionalId } = req.query;
-    if (!date || !professionalId) {
-        return res.status(400).json({ message: "Se requiere fecha y ID del profesional." });
+    const { date, professionalId, locationId } = req.query;
+    if (!date || !professionalId || !locationId) {
+        return res.status(400).json({ message: "Se requiere fecha, ID del profesional y ID del consultorio." });
     }
 
     try {
@@ -152,8 +162,8 @@ export const getAvailability = async (req, res) => {
         const dayOfWeek = requestedDateLuxon.weekday;
 
         const [schedules] = await pool.query(
-            'SELECT startTime, endTime, slotDurationMinutes FROM ProfessionalAvailability WHERE professionalUserId = ? AND dayOfWeek = ?',
-            [professionalId, dayOfWeek]
+            'SELECT startTime, endTime, slotDurationMinutes FROM ProfessionalAvailability WHERE professionalUserId = ? AND dayOfWeek = ? AND locationId = ?',
+            [professionalId, dayOfWeek, locationId]
         );
 
         if (schedules.length === 0) {
@@ -163,6 +173,9 @@ export const getAvailability = async (req, res) => {
         const startOfDayUTC = requestedDateLuxon.startOf('day').toUTC().toISO();
         const endOfDayUTC = requestedDateLuxon.endOf('day').toUTC().toISO();
 
+        // <-- CORRECCIÓN CRÍTICA: Se eliminó el filtro `locationId` de esta consulta.
+        // Un profesional no puede estar en dos lugares a la vez. Esta consulta ahora
+        // busca CUALQUIER turno del profesional en el rango de tiempo, sin importar el consultorio.
         const [bookedAppointments] = await pool.query(
             `SELECT DATE_FORMAT(dateTime, '%Y-%m-%dT%H:%i:%SZ') as dateTime 
              FROM Appointments 

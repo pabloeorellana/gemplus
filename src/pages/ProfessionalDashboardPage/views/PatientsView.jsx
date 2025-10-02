@@ -76,18 +76,11 @@ const PatientsView = () => {
         setLoading(true);
         setError(null);
         try {
-            const [patientsData, pathologiesData] = await Promise.all([
-                authFetch('/api/patients'),
-                authFetch('/api/catalogs/pathologies') 
-            ]);
-            
+            const patientsData = await authFetch('/api/patients');
             const processedPatients = (patientsData || []).map(p => ({
                 ...p, fullName: p.fullName || `${p.firstName || ''} ${p.lastName || ''}`.trim(),
             }));
-            
             setPatients(processedPatients);
-            setPathologies(pathologiesData || []); 
-
         } catch (err) {
             setError(err.message || "Error al cargar los datos iniciales.");
         } finally {
@@ -196,7 +189,16 @@ const PatientsView = () => {
 
     const handleViewPatientDetails = (patient) => setSelectedPatient(patient);
     const handleBackToList = () => setSelectedPatient(null);
-    const handleOpenRecordFormModal = (recordToEdit = null) => {
+    
+    const handleOpenRecordFormModal = useCallback(async (recordToEdit = null) => {
+        try {
+            const pathologiesData = await authFetch('/api/catalogs/pathologies/by-specialty');
+            setPathologies(pathologiesData || []);
+        } catch (err) {
+            showNotification('No se pudieron cargar las patologías para su especialidad.', 'error');
+            setPathologies([]);
+        }
+
         if (recordToEdit) {
             setCurrentRecordForm({ ...initialClinicalRecordState, ...recordToEdit, attachment: null });
             setIsEditingRecordForm(true);
@@ -205,7 +207,8 @@ const PatientsView = () => {
             setIsEditingRecordForm(false);
         }
         setOpenRecordFormModal(true);
-    };
+    }, [showNotification]);
+
     const handleCloseRecordFormModal = () => {
         setOpenRecordFormModal(false);
         setCurrentRecordForm(initialClinicalRecordState);
@@ -272,7 +275,6 @@ const PatientsView = () => {
         }
     };
     
-    // --- ESTA ES LA FUNCIÓN QUE SE USA PERO NO TENÍA SU MODAL ---
     const handleEditPatient = (patient) => {
         setPatientForValidation(patient);
         setEditingPatientData({
@@ -487,7 +489,6 @@ const PatientsView = () => {
                 <DialogActions sx={{p: '16px 24px', justifyContent: 'space-between'}}><Button onClick={handleCloseAddPatientModal} color="inherit">Cancelar</Button><Button onClick={handleSaveNewPatient} variant="contained">Guardar Paciente</Button></DialogActions>
             </Dialog>
 
-            {/* --- INICIO DEL MODAL CORREGIDO Y REINSERTADO --- */}
             {editingPatientData && (
                 <Dialog open={openEditPatientModal} onClose={handleCloseEditPatientModal} maxWidth="xs" fullWidth>
                     <DialogTitle sx={{ textAlign: 'center', pb: 0 }}>Editar Datos del Paciente</DialogTitle>
@@ -515,11 +516,10 @@ const PatientsView = () => {
                     </DialogActions>
                 </Dialog>
             )}
-            {/* --- FIN DEL MODAL CORREGIDO --- */}
 
             <Dialog open={openTogglePatientStatusConfirmModal} onClose={handleCloseTogglePatientStatusConfirmModal}>
                 <DialogTitle>Confirmar Cambio de Estado</DialogTitle>
-                <DialogContent><DialogContentText>¿Está seguro de que desea **{patientToToggle?.isActive ? 'archivado' : 'reactivar'}** al paciente **{patientToToggle?.fullName}**?{patientToToggle?.isActive && " Un paciente archivado no aparecerá en las búsquedas para nuevos turnos."}</DialogContentText></DialogContent>
+                <DialogContent><DialogContentText>¿Está seguro de que desea **{patientToToggle?.isActive ? 'archivar' : 'reactivar'}** al paciente **{patientToToggle?.fullName}**?{patientToToggle?.isActive && " Un paciente archivado no aparecerá en las búsquedas para nuevos turnos."}</DialogContentText></DialogContent>
                 <DialogActions><Button onClick={handleCloseTogglePatientStatusConfirmModal}>Cancelar</Button><Button onClick={handleConfirmTogglePatientStatus} color={patientToToggle?.isActive ? "warning" : "success"}>{patientToToggle?.isActive ? 'Archivar' : 'Reactivar'}</Button></DialogActions>
             </Dialog>
 

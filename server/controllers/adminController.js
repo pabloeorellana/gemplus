@@ -5,7 +5,7 @@ import pool from '../config/db.js';
 export const getAllUsers = async (req, res) => {
     try {
         const [users] = await pool.query(
-            'SELECT id, dni, fullName, email, phone, role, isActive, createdAt FROM Users ORDER BY fullName ASC'
+            'SELECT id, usuario, fullName, email, phone, role, isActive, createdAt, prefix, firstName, lastName FROM Users ORDER BY lastName ASC, firstName ASC'
         );
         res.json(users);
     } catch (error) {
@@ -15,37 +15,40 @@ export const getAllUsers = async (req, res) => {
 };
 
 export const createUser = async (req, res) => {
-    const { dni, email, password, fullName, role, specialty } = req.body;
-    if (!dni || !email || !password || !fullName || !role) {
-        return res.status(400).json({ message: 'Faltan campos requeridos (dni, email, password, fullName, role).' });
+    const { usuario, email, password, firstName, lastName, prefix, role, specialty, dni, matriculaProfesional } = req.body;
+    if (!usuario || !email || !password || !firstName || !lastName || !role) {
+        return res.status(400).json({ message: 'Faltan campos requeridos (usuario, email, password, nombre, apellido, role).' });
     }
     if (role === 'PROFESSIONAL' && !specialty) {
         return res.status(400).json({ message: 'La especialidad es requerida para el rol Profesional.' });
     }
+    const fullName = `${lastName}, ${firstName}`;
+    const finalPrefix = (prefix === 'Sin prefijo' || !prefix) ? null : prefix;
+
     let connection;
     try {
         connection = await pool.getConnection();
         await connection.beginTransaction();
-        const [existing] = await connection.query('SELECT dni, email FROM Users WHERE dni = ? OR email = ?', [dni, email]);
+        const [existing] = await connection.query('SELECT usuario, email FROM Users WHERE usuario = ? OR email = ?', [usuario, email]);
         if (existing.length > 0) {
             await connection.rollback();
-            return res.status(400).json({ message: 'El DNI o el email ya están registrados.' });
+            return res.status(400).json({ message: 'El nombre de usuario o el email ya están registrados.' });
         }
         const salt = await bcrypt.genSalt(10);
         const passwordHash = await bcrypt.hash(password, salt);
         const userId = uuidv4();
         await connection.query(
-            'INSERT INTO Users (id, dni, email, passwordHash, fullName, role) VALUES (?, ?, ?, ?, ?, ?)',
-            [userId, dni, email, passwordHash, fullName, role]
+            'INSERT INTO Users (id, usuario, email, passwordHash, fullName, firstName, lastName, prefix, role, dni) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+            [userId, usuario, email, passwordHash, fullName, firstName, lastName, finalPrefix, role, dni || null]
         );
         if (role === 'PROFESSIONAL') {
             await connection.query(
-                'INSERT INTO Professionals (userId, specialty) VALUES (?, ?)',
-                [userId, specialty]
+                'INSERT INTO Professionals (userId, specialty, matriculaProfesional) VALUES (?, ?, ?)',
+                [userId, specialty, matriculaProfesional || null]
             );
         }
         await connection.commit();
-        const [newUser] = await connection.query('SELECT id, dni, fullName, email, role, isActive, createdAt FROM Users WHERE id = ?', [userId]);
+        const [newUser] = await connection.query('SELECT id, usuario, fullName, email, role, isActive, createdAt, prefix, dni FROM Users WHERE id = ?', [userId]);
         res.status(201).json(newUser[0]);
     } catch (error) {
         if (connection) await connection.rollback();
@@ -58,29 +61,32 @@ export const createUser = async (req, res) => {
 
 export const updateUser = async (req, res) => {
     const { id: userId } = req.params;
-    const { fullName, email, role, isActive, specialty } = req.body;
-    if (!fullName || !email || !role) {
-        return res.status(400).json({ message: 'Nombre, email y rol son requeridos.' });
+    const { firstName, lastName, prefix, email, role, isActive, specialty, dni, matriculaProfesional } = req.body;
+    if (!firstName || !lastName || !email || !role) {
+        return res.status(400).json({ message: 'Nombre, apellido, email y rol son requeridos.' });
     }
+    const fullName = `${lastName}, ${firstName}`;
+    const finalPrefix = (prefix === 'Sin prefijo' || !prefix) ? null : prefix;
+
     let connection;
     try {
         connection = await pool.getConnection();
         await connection.beginTransaction();
         await connection.query(
-            'UPDATE Users SET fullName = ?, email = ?, role = ?, isActive = ? WHERE id = ?',
-            [fullName, email, role, isActive, userId]
+            'UPDATE Users SET fullName = ?, firstName = ?, lastName = ?, prefix = ?, email = ?, role = ?, isActive = ?, dni = ? WHERE id = ?',
+            [fullName, firstName, lastName, finalPrefix, email, role, isActive, dni || null, userId]
         );
         if (role === 'PROFESSIONAL') {
             const [existingProfile] = await connection.query('SELECT userId FROM Professionals WHERE userId = ?', [userId]);
             if (existingProfile.length > 0) {
                 await connection.query(
-                    'UPDATE Professionals SET specialty = ? WHERE userId = ?',
-                    [specialty || '', userId]
+                    'UPDATE Professionals SET specialty = ?, matriculaProfesional = ? WHERE userId = ?',
+                    [specialty || '', matriculaProfesional || null, userId]
                 );
             } else {
                 await connection.query(
-                    'INSERT INTO Professionals (userId, specialty) VALUES (?, ?)',
-                    [userId, specialty || '']
+                    'INSERT INTO Professionals (userId, specialty, matriculaProfesional) VALUES (?, ?, ?)',
+                    [userId, specialty || '', matriculaProfesional || null]
                 );
             }
         }
@@ -120,7 +126,7 @@ export const getUserById = async (req, res) => {
     const { id: userId } = req.params;
     try {
         const [users] = await pool.query(`
-            SELECT u.id, u.dni, u.fullName, u.email, u.role, u.isActive, p.specialty 
+            SELECT u.id, u.usuario, u.fullName, u.firstName, u.lastName, u.prefix, u.email, u.role, u.isActive, u.dni, p.specialty, p.matriculaProfesional
             FROM Users u
             LEFT JOIN Professionals p ON u.id = p.userId
             WHERE u.id = ?
