@@ -1,5 +1,3 @@
-// En: src/pages/LandingPage/LandingPage.jsx
-
 import React, { useState, useEffect, useRef } from 'react';
 import { Link as RouterLink } from 'react-router-dom';
 import {

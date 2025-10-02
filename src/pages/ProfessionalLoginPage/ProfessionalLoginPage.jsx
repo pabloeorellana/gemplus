@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useNavigate, Link as RouterLink } from 'react-router-dom';
+import { useNavigate, Link as RouterLink } from 'react-router-dom'; 
 import { useAuth } from '../../context/AuthContext';
 import {
     Container, Box, Typography, TextField, Button, Checkbox,
@@ -18,7 +18,7 @@ const ProfessionalLoginPage = () => {
     });
     const [rememberMe, setRememberMe] = useState(false);
     const [error, setError] = useState('');
-    const [loading, setLoading] = useState(false);
+    const [loading, setLoading] = useState(false); 
     const navigate = useNavigate();
     const { login } = useAuth();
 
@@ -44,7 +44,11 @@ const ProfessionalLoginPage = () => {
         setLoading(true);
 
         try {
-            const response = await fetch(`${API_BASE_URL}/api/auth/login`, {
+            // <-- INICIO DE LA CORRECCIÓN CRÍTICA -->
+            // Se eliminó el prefijo "/api" que estaba hardcodeado.
+            // Ahora la URL se construye correctamente: API_BASE_URL + /auth/login
+            const response = await fetch(`${API_BASE_URL}/auth/login`, {
+            // <-- FIN DE LA CORRECCIÓN CRÍTICA -->
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ usuario: credentials.usuario, password: credentials.password }),
@@ -117,7 +121,7 @@ const ProfessionalLoginPage = () => {
                     />
                     <TextField
                         margin="normal" required fullWidth name="password" label="Contraseña"
-                        type={showPassword ? 'text' : 'password'} // <-- Cambia el tipo dinámicamente
+                        type={showPassword ? 'text' : 'password'}
                         id="password" autoComplete="current-password"
                         value={credentials.password} onChange={handleChange}
                         disabled={loading}
