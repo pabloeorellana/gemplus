@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import {
-    Container, Typography, Box, CssBaseline, Grid, AppBar, Toolbar, Alert, TextField,
+    Container, Typography, Box, CssBaseline, AppBar, Toolbar, Alert, TextField,
     Button, CircularProgress, Paper, Dialog, DialogTitle, DialogContent, DialogActions,
     Card, CardContent, CardActions, Avatar, CardActionArea
 } from '@mui/material';
@@ -30,7 +30,7 @@ const getInitials = (name) => {
 const STEPS = {
     SPECIALTY_SELECTION: 'SPECIALTY_SELECTION',
     PROFESSIONAL_SELECTION: 'PROFESSIONAL_SELECTION',
-    LOCATION_SELECTION: 'LOCATION_SELECTION', // <-- AÑADIDO: Nuevo paso en el flujo.
+    LOCATION_SELECTION: 'LOCATION_SELECTION',
     CALENDAR_SELECTION: 'CALENDAR_SELECTION',
     PATIENT_FORM: 'PATIENT_FORM',
     CONFIRMATION: 'CONFIRMATION',
@@ -62,11 +62,11 @@ const AppointmentBookingPage = () => {
     const [errorProfessionals, setErrorProfessionals] = useState('');
     const [selectedProfessionalId, setSelectedProfessionalId] = useState(null);
     const [selectedProfessionalName, setSelectedProfessionalName] = useState('');
-    const [locations, setLocations] = useState([]); // <-- AÑADIDO: Estado para los consultorios
+    const [locations, setLocations] = useState([]);
     const [loadingLocations, setLoadingLocations] = useState(false);
     const [errorLocations, setErrorLocations] = useState('');
     const [selectedLocationId, setSelectedLocationId] = useState(null);
-    const [selectedLocationName, setSelectedLocationName] = useState(''); // <-- AÑADIDO: Estado para el nombre del consultorio
+    const [selectedLocationName, setSelectedLocationName] = useState('');
     const [selectedDateTime, setSelectedDateTime] = useState(null);
     const [confirmedAppointment, setConfirmedAppointment] = useState(null);
     const [dniInput, setDniInput] = useState('');
@@ -95,6 +95,8 @@ const AppointmentBookingPage = () => {
                         const locationsResponse = await fetch(`${API_BASE_URL}/api/public/professionals/${prof.id}/locations`);
                         const locationsData = await locationsResponse.json();
                         
+                        setLocations(locationsData); // <-- CORRECCIÓN: Guardar siempre la data de locations
+
                         if (locationsData.length === 0) {
                              setErrorProfessionals('Este profesional no tiene consultorios configurados.');
                              setCurrentStep(STEPS.SPECIALTY_SELECTION);
@@ -103,7 +105,6 @@ const AppointmentBookingPage = () => {
                             setSelectedLocationName(locationsData[0].name);
                             setCurrentStep(STEPS.CALENDAR_SELECTION);
                         } else {
-                            setLocations(locationsData);
                             setCurrentStep(STEPS.LOCATION_SELECTION);
                         }
                     } else {
@@ -193,6 +194,8 @@ const AppointmentBookingPage = () => {
             }
             const data = await response.json();
             
+            setLocations(data); // <-- CORRECCIÓN CRÍTICA: Guardar siempre la lista de consultorios
+
             if (data.length === 0) {
                 setErrorLocations('Este profesional no tiene consultorios activos para la reserva online.');
             } else if (data.length === 1) {
@@ -200,7 +203,6 @@ const AppointmentBookingPage = () => {
                 setSelectedLocationName(data[0].name);
                 setCurrentStep(STEPS.CALENDAR_SELECTION);
             } else {
-                setLocations(data);
                 setCurrentStep(STEPS.LOCATION_SELECTION);
             }
         } catch (err) {
@@ -254,7 +256,7 @@ const AppointmentBookingPage = () => {
                 patient: patientDetails,
                 dateTime: appointmentDateTime,
                 professionalName: selectedProfessionalName,
-                location: locationDetails, // <-- AÑADIDO: Pasar el objeto de ubicación a la confirmación
+                location: locationDetails,
                 appointmentDetails: data
             });
             setCurrentStep(STEPS.CONFIRMATION);
@@ -330,7 +332,7 @@ const AppointmentBookingPage = () => {
             <CssBaseline />
             <AppBar position="static" color="primary">
                 <Toolbar>
-                    <Box component="img" src="/public/gemplus-logo.png" sx={{ height: '36px', mr: 2 }} />
+                    <Box component="img" src="/gemplus-logo.png" sx={{ height: '36px', mr: 2 }} />
                     <Typography variant="h6" component="div" sx={{ flexGrow: 1 }}>
                         Solicitud de turnos
                     </Typography>
