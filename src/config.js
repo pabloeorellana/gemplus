@@ -1,6 +1,6 @@
 let apiUrl;
 if (import.meta.env.PROD) {
-  apiUrl = '/api';
+  apiUrl = 'https://www.gemplus.com.ar/api'; 
 } else {
   apiUrl = 'http://localhost:3001';
 }
