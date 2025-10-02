@@ -39,6 +39,8 @@ if (!JWT_SECRET) {
 // Configuración de CORS
 const allowedOrigins = [
     'http://localhost:5173',
+    'http://www.gemplus.com.ar', // <-- AÑADIDO: Asegúrate de que los dominios sin https también estén
+    'https://www.gemplus.com.ar',
     process.env.FRONTEND_URL
 ].filter(Boolean);
 
@@ -58,7 +60,7 @@ const corsOptions = {
 };
 
 console.log("Orígenes permitidos por CORS:", allowedOrigins);
-
+app.options('*', cors(corsOptions));
 // Middlewares globales
 app.use(cors(corsOptions));
 app.use(express.json());
