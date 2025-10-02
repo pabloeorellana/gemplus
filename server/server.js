@@ -19,6 +19,7 @@ import notificationRoutes from './routes/notificationRoutes.js';
 import adminRoutes from './routes/adminRoutes.js';
 import authRoutes from './routes/authRoutes.js';
 import catalogRoutes from './routes/catalogRoutes.js';
+import practiceLocationRoutes from './routes/practiceLocationRoutes.js'; 
 //import settingsRoutes from './routes/settingsRoutes.js';
 
 const app = express();
@@ -84,6 +85,7 @@ app.use('/api/statistics', statisticsRoutes);
 app.use('/api/notifications', notificationRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/catalogs', catalogRoutes);
+app.use('/api/locations', practiceLocationRoutes);
 //app.use('/api/settings', settingsRoutes);
 
 // Ruta de "health check" para verificar que el servidor está vivo

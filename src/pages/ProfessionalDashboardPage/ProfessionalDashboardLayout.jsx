@@ -14,6 +14,8 @@ import NotificationsIcon from '@mui/icons-material/Notifications';
 import AccountCircleIcon from '@mui/icons-material/AccountCircle';
 import LogoutIcon from '@mui/icons-material/Logout';
 import EventAvailableIcon from '@mui/icons-material/EventAvailable';
+import LocationOnIcon from '@mui/icons-material/LocationOn';
+
 import { useAuth } from '../../context/AuthContext';
 import authFetch from '../../utils/authFetch';
 import { DateTime } from 'luxon';
@@ -24,6 +26,7 @@ import AvailabilityView from './views/AvailabilityView.jsx';
 import PatientsView from './views/PatientsView.jsx';
 import ProfileView from './views/ProfileView.jsx';
 import StatisticsView from './views/StatisticsView.jsx';
+import LocationsView from './views/LocationsView.jsx';
 
 const drawerWidth = 240;
 
@@ -95,6 +98,7 @@ const ProfessionalDashboardLayout = (props) => {
     const menuItems = [
         { text: 'Agenda', icon: <EventIcon />, path: 'agenda' },
         { text: 'Disponibilidad', icon: <ScheduleSendIcon />, path: 'disponibilidad' },
+        { text: 'Consultorios', icon: <LocationOnIcon />, path: 'consultorios' },
         { text: 'Pacientes', icon: <PeopleIcon />, path: 'pacientes' },
         { text: 'Estadísticas', icon: <AssessmentIcon />, path: 'estadisticas' },
         { text: 'Mi Perfil', icon: <AccountCircleIcon />, path: 'perfil' },
@@ -274,6 +278,7 @@ const ProfessionalDashboardLayout = (props) => {
                     <Route path="/" element={<Navigate to="agenda" replace />} />
                     <Route path="agenda" element={<AppointmentsView />} />
                     <Route path="disponibilidad" element={<AvailabilityView />} />
+                    <Route path="consultorios" element={<LocationsView />} />
                     <Route path="pacientes" element={<PatientsView />} />
                     <Route path="estadisticas" element={<StatisticsView />} />
                     <Route path="perfil" element={<ProfileView />} />

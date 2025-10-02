@@ -7,21 +7,24 @@ import { es } from 'date-fns/locale';
 import { format } from 'date-fns';
 import { API_BASE_URL } from '../../config';
 
-const AvailabilityCalendar = ({ onSlotSelect, professionalId }) => {
+const AvailabilityCalendar = ({ onSlotSelect, professionalId, locationId }) => {
     const [selectedDate, setSelectedDate] = useState(new Date());
     const [availableSlots, setAvailableSlots] = useState([]);
     const [loadingSlots, setLoadingSlots] = useState(false);
     const [error, setError] = useState(null);
 
     useEffect(() => {
-        if (!selectedDate || !professionalId) return;
+        if (!selectedDate || !professionalId || !locationId) {
+            setAvailableSlots([]);
+            return;
+        }
         setLoadingSlots(true);
         setError(null);
         setAvailableSlots([]);
 
         const dateKey = format(selectedDate, 'yyyy-MM-dd');
 
-        fetch(`${API_BASE_URL}/api/public/availability?date=${dateKey}&professionalId=${professionalId}`)
+        fetch(`${API_BASE_URL}/api/public/availability?date=${dateKey}&professionalId=${professionalId}&locationId=${locationId}`)
             .then(response => {
                 if (!response.ok) throw new Error(`Error del servidor al obtener horarios.`);
                 return response.json();
@@ -32,7 +35,7 @@ const AvailabilityCalendar = ({ onSlotSelect, professionalId }) => {
                 setError('No se pudieron cargar los horarios. Intente más tarde.');
             })
             .finally(() => { setLoadingSlots(false); });
-    }, [selectedDate, professionalId]);
+    }, [selectedDate, professionalId, locationId]);
 
     const handleDateChange = (newDate) => { setSelectedDate(newDate); };
 
@@ -101,7 +104,7 @@ const AvailabilityCalendar = ({ onSlotSelect, professionalId }) => {
                                     ))
                                 ) : (
                                     <Typography sx={{ p: 2, textAlign: 'center', width: '100%', mt: 4, color: 'text.secondary' }}>
-                                        No hay horarios disponibles para esta fecha.
+                                        No hay horarios disponibles para esta fecha y consultorio.
                                     </Typography>
                                 )}
                             </Grid>

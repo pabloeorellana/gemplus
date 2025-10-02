@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useNavigate, Link as RouterLink } from 'react-router-dom'; 
+import { useNavigate, Link as RouterLink } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import {
     Container, Box, Typography, TextField, Button, Checkbox,
@@ -13,12 +13,12 @@ const logoUrl = "/public/gemplus-logo.png";
 
 const ProfessionalLoginPage = () => {
     const [credentials, setCredentials] = useState({
-        dni: '',
+        usuario: '',
         password: '',
     });
     const [rememberMe, setRememberMe] = useState(false);
     const [error, setError] = useState('');
-    const [loading, setLoading] = useState(false); 
+    const [loading, setLoading] = useState(false);
     const navigate = useNavigate();
     const { login } = useAuth();
 
@@ -47,7 +47,7 @@ const ProfessionalLoginPage = () => {
             const response = await fetch(`${API_BASE_URL}/api/auth/login`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ dni: credentials.dni, password: credentials.password }),
+                body: JSON.stringify({ usuario: credentials.usuario, password: credentials.password }),
             });
 
             const data = await response.json();
@@ -111,8 +111,8 @@ const ProfessionalLoginPage = () => {
 
                 <Box component="form" onSubmit={handleSubmit} noValidate sx={{ width: '100%' }}>
                     <TextField
-                        margin="normal" required fullWidth id="dni" label="Usuario" name="dni"
-                        autoComplete="username" autoFocus value={credentials.dni} onChange={handleChange}
+                        margin="normal" required fullWidth id="usuario" label="Usuario" name="usuario"
+                        autoComplete="username" autoFocus value={credentials.usuario} onChange={handleChange}
                         disabled={loading}
                     />
                     <TextField

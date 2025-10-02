@@ -4,11 +4,16 @@ import pool from '../config/db.js';
 export const getMyUserProfile = async (req, res) => {
     try {
         const [users] = await pool.query(
-            'SELECT id, dni, email, fullName, phone, role, isActive, googleId, lastLogin, createdAt, updatedAt, profileImageUrl FROM Users WHERE id = ?',
+            'SELECT id, usuario, email, fullName, firstName, lastName, prefix, phone, role, isActive, googleId, lastLogin, createdAt, updatedAt, profileImageUrl, dni, receivesDailyAgenda FROM Users WHERE id = ?',
             [req.user.userId]
         );
         if (users.length > 0) {
-            res.json(users[0]);
+            // <-- CORRECCIÓN: Asegurarnos de devolver un booleano al frontend
+            const user = {
+                ...users[0],
+                receivesDailyAgenda: !!users[0].receivesDailyAgenda
+            };
+            res.json(user);
         } else {
             res.status(404).json({ message: 'Usuario no encontrado' });
         }
@@ -19,11 +24,20 @@ export const getMyUserProfile = async (req, res) => {
 };
 
 export const updateMyUserProfile = async (req, res) => {
-    const { fullName, email, phone, specialty, description } = req.body;
+    const { firstName, lastName, prefix, email, phone, specialty, description, dni, matriculaProfesional, receivesDailyAgenda } = req.body;
     const userId = req.user.userId;
-    if (!fullName || !email) {
-        return res.status(400).json({ message: 'Nombre completo y email son requeridos.' });
+    if (!firstName || !lastName || !email) {
+        return res.status(400).json({ message: 'Nombre, apellido y email son requeridos.' });
     }
+    
+    const fullName = `${lastName}, ${firstName}`;
+    const finalPrefix = (prefix === 'Sin prefijo' || !prefix) ? null : prefix;
+    
+    // <-- INICIO DE LA CORRECCIÓN CRÍTICA -->
+    // Convertimos el string "true" o "false" que llega del FormData a un valor booleano, y luego a 1 o 0 para MySQL.
+    const receivesAgendaValue = receivesDailyAgenda === 'true' ? 1 : 0;
+    // <-- FIN DE LA CORRECCIÓN CRÍTICA -->
+
     try {
         const [users] = await pool.query('SELECT * FROM Users WHERE id = ?', [userId]);
         if (users.length === 0) {
@@ -40,31 +54,35 @@ export const updateMyUserProfile = async (req, res) => {
         if (req.file) {
             profileImageUrl = `/uploads/avatars/${req.file.filename}`;
         }
+        
         await pool.query(
-            'UPDATE Users SET fullName = ?, email = ?, phone = ?, profileImageUrl = ?, updatedAt = NOW() WHERE id = ?',
-            [fullName, email, phone || null, profileImageUrl, userId]
+            'UPDATE Users SET fullName = ?, firstName = ?, lastName = ?, prefix = ?, email = ?, phone = ?, profileImageUrl = ?, updatedAt = NOW(), dni = ?, receivesDailyAgenda = ? WHERE id = ?',
+            [fullName, firstName, lastName, finalPrefix, email, phone || null, profileImageUrl, dni || null, receivesAgendaValue, userId] // <-- USAMOS EL VALOR CORREGIDO
         );
         if (user.role === 'PROFESSIONAL') {
             const [existingProfile] = await pool.query('SELECT userId FROM Professionals WHERE userId = ?', [userId]);
             if (existingProfile.length > 0) {
                 await pool.query(
-                    'UPDATE Professionals SET specialty = ?, description = ?, updatedAt = NOW() WHERE userId = ?',
-                    [specialty || null, description || null, userId]
+                    'UPDATE Professionals SET specialty = ?, description = ?, matriculaProfesional = ?, updatedAt = NOW() WHERE userId = ?',
+                    [specialty || null, description || null, matriculaProfesional || null, userId]
                 );
             } else {
                 await pool.query(
-                    'INSERT INTO Professionals (userId, specialty, description) VALUES (?, ?, ?)',
-                    [userId, specialty || null, description || null]
+                    'INSERT INTO Professionals (userId, specialty, description, matriculaProfesional) VALUES (?, ?, ?, ?)',
+                    [userId, specialty || null, description || null, matriculaProfesional || null]
                 );
             }
         }
         const [updatedUsers] = await pool.query(
-            'SELECT id, dni, email, fullName, phone, role, profileImageUrl FROM Users WHERE id = ?',
+            'SELECT id, usuario, email, fullName, firstName, lastName, prefix, phone, role, profileImageUrl, dni, receivesDailyAgenda FROM Users WHERE id = ?',
             [userId]
         );
         res.json({
             message: "Perfil actualizado exitosamente",
-            user: updatedUsers[0]
+            user: {
+                ...updatedUsers[0],
+                receivesDailyAgenda: !!updatedUsers[0].receivesDailyAgenda
+            }
         });
     } catch (error) {
         console.error('Error en updateMyUserProfile:', error);
@@ -75,13 +93,13 @@ export const updateMyUserProfile = async (req, res) => {
 export const getMyProfessionalProfile = async (req, res) => {
     try {
         const [professionals] = await pool.query(
-            'SELECT userId, specialty, description FROM Professionals WHERE userId = ?',
+            'SELECT userId, specialty, description, matriculaProfesional FROM Professionals WHERE userId = ?',
             [req.user.userId]
         );
         if (professionals.length > 0) {
             res.json(professionals[0]);
         } else {
-            res.status(200).json({ specialty: '', description: '' });
+            res.status(200).json({ specialty: '', description: '', matriculaProfesional: '' });
         }
     } catch (error) {
         console.error('Error en getMyProfessionalProfile:', error);

@@ -2,13 +2,14 @@ import React from 'react';
 import { Typography, Paper, Button, Box, Alert, Stack, Divider } from '@mui/material';
 import CheckCircleOutlineIcon from '@mui/icons-material/CheckCircleOutline';
 import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined';
+import LocationOnOutlinedIcon from '@mui/icons-material/LocationOnOutlined';
 
 const AppointmentConfirmation = ({ appointmentDetails, onBookAnother }) => {
     if (!appointmentDetails) {
         return null;
     }
 
-    const { patient, dateTime, professionalName } = appointmentDetails;
+    const { patient, dateTime, professionalName, location } = appointmentDetails;
     const patientName = `${patient.firstName || ''} ${patient.lastName || ''}`.trim();
     
     const formattedDate = dateTime.toLocaleDateString('es-ES', {
@@ -59,6 +60,21 @@ const AppointmentConfirmation = ({ appointmentDetails, onBookAnother }) => {
                     <Typography><strong>Fecha:</strong> {formattedDate}</Typography>
                     <Divider />
                     <Typography><strong>Hora:</strong> {formattedTime} hs.</Typography>
+                    {location && (
+                        <>
+                            <Divider />
+                            <Box>
+                                <Typography><strong>Lugar de Atención:</strong></Typography>
+                                <Stack direction="row" spacing={1} alignItems="center" sx={{ pl: 1, mt: 0.5, color: 'text.secondary' }}>
+                                    <LocationOnOutlinedIcon fontSize="small" />
+                                    <Box>
+                                        <Typography variant="body2"><strong>{location.name}</strong></Typography>
+                                        <Typography variant="body2">{location.address}, {location.city}</Typography>
+                                    </Box>
+                                </Stack>
+                            </Box>
+                        </>
+                    )}
                 </Stack>
             </Box>
 

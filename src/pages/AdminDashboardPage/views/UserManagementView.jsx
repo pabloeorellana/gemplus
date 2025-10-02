@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import {
     Box, Typography, Button, Tooltip, IconButton, Dialog, DialogTitle,
     DialogContent, DialogActions, TextField, FormControl, InputLabel,
-    Select, MenuItem, Grid, Chip, Switch, FormControlLabel, InputAdornment, DialogContentText
+    Select, MenuItem, Grid, Chip, Switch, FormControlLabel, InputAdornment, DialogContentText, FormHelperText
 } from '@mui/material';
 import { MaterialReactTable } from 'material-react-table';
 import { MRT_Localization_ES } from 'material-react-table/locales/es';
@@ -19,14 +19,17 @@ import { useNotification } from '../../../context/NotificationContext';
 import { useAuth } from '../../../context/AuthContext';
 
 const initialUserState = {
-    dni: '', fullName: '', email: '', password: '',
-    confirmPassword: '', role: 'PROFESSIONAL', specialty: '', isActive: true
+    usuario: '', firstName: '', lastName: '', prefix: '', email: '', password: '',
+    confirmPassword: '', role: 'PROFESSIONAL', specialty: '', isActive: true,
+    dni: '', matriculaProfesional: ''
 };
 
 const UserManagementView = () => {
     const { showNotification } = useNotification();
     const { authUser } = useAuth();
     const [users, setUsers] = useState([]);
+    const [specialties, setSpecialties] = useState([]);
+    const [prefixes, setPrefixes] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
     const [isModalOpen, setIsModalOpen] = useState(false);
@@ -43,23 +46,29 @@ const UserManagementView = () => {
     const [openDeleteConfirmModal, setOpenDeleteConfirmModal] = useState(false);
     const [userToDelete, setUserToDelete] = useState(null);
 
-    const fetchUsers = useCallback(async () => {
+    const fetchInitialData = useCallback(async () => {
         setLoading(true);
         setError('');
         try {
-            const usersData = await authFetch('/api/admin/users');
+            const [usersData, specialtiesData, prefixesData] = await Promise.all([
+                authFetch('/api/admin/users'),
+                authFetch('/api/catalogs/specialties'),
+                authFetch('/api/catalogs/prefixes')
+            ]);
             setUsers(usersData || []);
+            setSpecialties(specialtiesData || []);
+            setPrefixes(prefixesData || []);
         } catch (err) {
-            showNotification(err.message || 'Error al cargar usuarios.', 'error');
-            setError(err.message || 'Error al cargar usuarios.');
+            showNotification(err.message || 'Error al cargar datos iniciales.', 'error');
+            setError(err.message || 'Error al cargar datos iniciales.');
         } finally {
             setLoading(false);
         }
     }, [showNotification]);
 
     useEffect(() => {
-        fetchUsers();
-    }, [fetchUsers]);
+        fetchInitialData();
+    }, [fetchInitialData]);
 
     const handleOpenCreateModal = () => {
         setIsEditing(false);
@@ -71,7 +80,9 @@ const UserManagementView = () => {
     const handleOpenEditModal = async (user) => {
         setIsEditing(true);
         try {
-            setCurrentUser({ ...user, password: '', confirmPassword: '' });
+            // <-- MODIFICADO: getUserById ahora trae todos los campos necesarios.
+            const fullUserData = await authFetch(`/api/admin/users/${user.id}`);
+            setCurrentUser({ ...fullUserData, password: '', confirmPassword: '' });
         } catch (err) {
             showNotification(err.message, 'error');
             setCurrentUser({ ...user, password: '', confirmPassword: '' });
@@ -93,8 +104,9 @@ const UserManagementView = () => {
 
     const validateForm = () => {
         const errors = {};
-        if (!currentUser.dni?.trim()) errors.dni = 'DNI es requerido.';
-        if (!currentUser.fullName?.trim()) errors.fullName = 'Nombre completo es requerido.';
+        if (!currentUser.usuario?.trim()) errors.usuario = 'Usuario es requerido.';
+        if (!currentUser.lastName?.trim()) errors.lastName = 'Apellido es requerido.';
+        if (!currentUser.firstName?.trim()) errors.firstName = 'Nombre es requerido.';
         if (!currentUser.email?.trim()) {
             errors.email = 'Email es requerido.';
         } else if (!/\S+@\S+\.\S+/.test(currentUser.email)) {
@@ -102,7 +114,8 @@ const UserManagementView = () => {
         }
         if (!isEditing) {
             if (!currentUser.password) errors.password = 'Contraseña es requerida.';
-            if (currentUser.password.length < 6) errors.password = 'La contraseña debe tener al menos 6 caracteres.';
+            else if (currentUser.password.length < 6) errors.password = 'La contraseña debe tener al menos 6 caracteres.';
+            
             if (currentUser.password !== currentUser.confirmPassword) errors.confirmPassword = 'Las contraseñas no coinciden.';
         }
         if (!currentUser.role) errors.role = 'Rol es requerido.';
@@ -125,7 +138,7 @@ const UserManagementView = () => {
             });
             showNotification(`Usuario ${isEditing ? 'actualizado' : 'creado'} exitosamente.`, 'success');
             handleCloseModal();
-            fetchUsers();
+            fetchInitialData();
         } catch (err) {
             showNotification(err.message || `Error al ${isEditing ? 'actualizar' : 'crear'} el usuario.`, 'error');
         }
@@ -142,7 +155,7 @@ const UserManagementView = () => {
             await authFetch(`/api/admin/users/${userToToggle.id}`, { method: 'PATCH' });
             const action = userToToggle.isActive ? 'desactivado' : 'reactivado';
             showNotification(`Usuario ${action} exitosamente.`, 'success');
-            fetchUsers();
+            fetchInitialData();
         } catch (err) {
             showNotification(err.message || 'Error al cambiar el estado del usuario.', 'error');
         } finally {
@@ -203,7 +216,7 @@ const UserManagementView = () => {
         try {
             await authFetch(`/api/admin/users/${userToDelete.id}`, { method: 'DELETE' });
             showNotification(`Usuario ${userToDelete.fullName} eliminado permanentemente.`, 'success');
-            fetchUsers();
+            fetchInitialData();
         } catch (err) {
             showNotification(err.message || 'Error al eliminar el usuario.', 'error');
         } finally {
@@ -217,7 +230,7 @@ const UserManagementView = () => {
 
     const columns = useMemo(() => [
         { accessorKey: 'fullName', header: 'Nombre Completo' },
-        { accessorKey: 'dni', header: 'DNI' },
+        { accessorKey: 'usuario', header: 'Usuario' },
         { accessorKey: 'email', header: 'Correo Electrónico' },
         { accessorKey: 'role', header: 'Rol' },
         { accessorKey: 'isActive', header: 'Estado', Cell: ({ cell }) => (
@@ -284,19 +297,49 @@ const UserManagementView = () => {
                     </Button>
                 </DialogActions>
             </Dialog>
-            <Dialog open={isModalOpen} onClose={handleCloseModal} maxWidth="xs" fullWidth>
+            <Dialog open={isModalOpen} onClose={handleCloseModal} maxWidth="sm" fullWidth>
                 <DialogTitle>{isEditing ? 'Editar Usuario' : 'Crear Nuevo Usuario'}</DialogTitle>
                 <DialogContent>
-                    <Grid container spacing={2} direction="column" sx={{ pt: 1 }}>
-                        <Grid item xs={12}><TextField name="dni" label="DNI *" value={currentUser.dni || ''} onChange={handleUserChange} fullWidth error={!!validationErrors.dni} helperText={validationErrors.dni} disabled={isEditing} /></Grid>
-                        <Grid item xs={12}><TextField name="fullName" label="Nombre Completo *" value={currentUser.fullName || ''} onChange={handleUserChange} fullWidth error={!!validationErrors.fullName} helperText={validationErrors.fullName} /></Grid>
-                        <Grid item xs={12}><TextField name="email" label="Correo Electrónico *" type="email" value={currentUser.email || ''} onChange={handleUserChange} fullWidth error={!!validationErrors.email} helperText={validationErrors.email} /></Grid>
+                    <Grid container spacing={2} sx={{ pt: 1 }} direction="column">
+                        <Grid item xs={12}>
+                            <TextField name="usuario" label="Usuario *" value={currentUser.usuario || ''} onChange={handleUserChange} fullWidth error={!!validationErrors.usuario} helperText={validationErrors.usuario} disabled={isEditing} />
+                        </Grid>
+                        
+                        <Grid item xs={12}>
+                            <FormControl fullWidth>
+                                <InputLabel id="prefix-select-label">Prefijo</InputLabel>
+                                <Select labelId="prefix-select-label" name="prefix" value={currentUser.prefix || ''} label="Prefijo" onChange={handleUserChange}>
+                                    <MenuItem value=""><em>Ninguno</em></MenuItem>
+                                    {prefixes.map((p) => (<MenuItem key={p.id} value={p.name}>{p.name}</MenuItem>))}
+                                </Select>
+                            </FormControl>
+                        </Grid>
+                        <Grid item xs={12}>
+                            <TextField name="lastName" label="Apellido *" value={currentUser.lastName || ''} onChange={handleUserChange} fullWidth error={!!validationErrors.lastName} helperText={validationErrors.lastName} />
+                        </Grid>
+                        <Grid item xs={12}>
+                            <TextField name="firstName" label="Nombre *" value={currentUser.firstName || ''} onChange={handleUserChange} fullWidth error={!!validationErrors.firstName} helperText={validationErrors.firstName} />
+                        </Grid>
+                        
+                        <Grid item xs={12}>
+                            <TextField name="email" label="Correo Electrónico *" type="email" value={currentUser.email || ''} onChange={handleUserChange} fullWidth error={!!validationErrors.email} helperText={validationErrors.email} />
+                        </Grid>
+
+                        <Grid item xs={12}>
+                            <TextField name="dni" label="DNI (Opcional)" value={currentUser.dni || ''} onChange={handleUserChange} fullWidth />
+                        </Grid>
+
                         {!isEditing && (
                             <>
-                                <Grid item xs={12}><TextField name="password" label="Contraseña *" type={showPassword ? 'text' : 'password'} value={currentUser.password || ''} onChange={handleUserChange} fullWidth error={!!validationErrors.password} helperText={validationErrors.password} /></Grid>
-                                <Grid item xs={12}><TextField name="confirmPassword" label="Confirmar Contraseña *" type={showPassword ? 'text' : 'password'} value={currentUser.confirmPassword || ''} onChange={handleUserChange} fullWidth error={!!validationErrors.confirmPassword} helperText={validationErrors.confirmPassword} /></Grid>
+                                <Grid item xs={12}>
+                                    <TextField name="password" label="Contraseña *" type={showPassword ? 'text' : 'password'} value={currentUser.password || ''} onChange={handleUserChange} fullWidth error={!!validationErrors.password} helperText={validationErrors.password} />
+                                </Grid>
+                                <Grid item xs={12}>
+                                    <TextField name="confirmPassword" label="Confirmar Contraseña *" type={showPassword ? 'text' : 'password'} value={currentUser.confirmPassword || ''} onChange={handleUserChange} fullWidth error={!!validationErrors.confirmPassword} helperText={validationErrors.confirmPassword} />
+                                </Grid>
                             </>
                         )}
+
                         <Grid item xs={12}>
                             <FormControl fullWidth error={!!validationErrors.role}>
                                 <InputLabel>Rol *</InputLabel>
@@ -306,22 +349,28 @@ const UserManagementView = () => {
                                 </Select>
                             </FormControl>
                         </Grid>
+                        
+                        {currentUser.role === 'PROFESSIONAL' && (
+                            <>
+                                <Grid item xs={12}>
+                                    <FormControl fullWidth error={!!validationErrors.specialty}>
+                                        <InputLabel id="specialty-select-label">Especialidad *</InputLabel>
+                                        <Select labelId="specialty-select-label" name="specialty" value={currentUser.specialty || ''} label="Especialidad *" onChange={handleUserChange}>
+                                            <MenuItem value=""><em>Seleccione una especialidad</em></MenuItem>
+                                            {specialties.map((spec) => (<MenuItem key={spec.id} value={spec.name}>{spec.name}</MenuItem>))}
+                                        </Select>
+                                        {validationErrors.specialty && <FormHelperText>{validationErrors.specialty}</FormHelperText>}
+                                    </FormControl>
+                                </Grid>
+                                <Grid item xs={12}>
+                                    <TextField name="matriculaProfesional" label="Matrícula Profesional (Opcional)" value={currentUser.matriculaProfesional || ''} onChange={handleUserChange} fullWidth />
+                                </Grid>
+                            </>
+                        )}
+
                         {isEditing && (
                             <Grid item xs={12}>
                                 <FormControlLabel control={<Switch name="isActive" checked={!!currentUser.isActive} onChange={handleUserChange} />} label="Usuario Activo" />
-                            </Grid>
-                        )}
-                        {currentUser.role === 'PROFESSIONAL' && (
-                            <Grid item xs={12}>
-                                <TextField 
-                                    name="specialty" 
-                                    label="Especialidad (para Profesional)" 
-                                    value={currentUser.specialty || ''} 
-                                    onChange={handleUserChange} 
-                                    fullWidth 
-                                    error={!!validationErrors.specialty} 
-                                    helperText={validationErrors.specialty} 
-                                />
                             </Grid>
                         )}
                     </Grid>

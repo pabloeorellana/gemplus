@@ -7,12 +7,12 @@ import { sendPasswordResetEmail } from '../utils/emailService.js';
 const JWT_SECRET = process.env.JWT_SECRET;
 
 export const loginUser = async (req, res) => {
-    const { dni, password } = req.body;
-    if (!dni || !password) {
-        return res.status(400).json({ message: 'DNI y contraseña son requeridos.' });
+    const { usuario, password } = req.body;
+    if (!usuario || !password) {
+        return res.status(400).json({ message: 'Usuario y contraseña son requeridos.' });
     }
     try {
-        const [users] = await pool.query('SELECT * FROM Users WHERE dni = ? AND isActive = TRUE', [dni]);
+        const [users] = await pool.query('SELECT * FROM Users WHERE usuario = ? AND isActive = TRUE', [usuario]);
         if (users.length === 0) {
             return res.status(401).json({ message: 'Credenciales inválidas.' });
         }
@@ -23,7 +23,7 @@ export const loginUser = async (req, res) => {
         }
         const payload = {
             userId: user.id,
-            dni: user.dni,
+            usuario: user.usuario,
             role: user.role,
             fullName: user.fullName
         };
@@ -33,7 +33,7 @@ export const loginUser = async (req, res) => {
             token,
             user: {
                 id: user.id,
-                dni: user.dni,
+                usuario: user.usuario,
                 fullName: user.fullName,
                 email: user.email,
                 role: user.role,
