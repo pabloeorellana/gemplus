@@ -8,8 +8,8 @@ const authFetch = async (endpoint, options = {}) => {
     const token = getAuthToken();
     
     // <-- INICIO DE LA CORRECCIÓN CRÍTICA -->
-    // Verificamos si el endpoint ya comienza con la URL base (que en producción es "/api").
-    // Si es así, no la añadimos de nuevo. Esto evita la duplicación /api/api.
+    // Con la nueva configuración de `config.js`, la URL se construye de forma simple y directa.
+    // Ej: API_BASE_URL ('.../api') + endpoint ('/users/me') = '.../api/users/me'
     const url = `${API_BASE_URL}${endpoint}`;
     // <-- FIN DE LA CORRECCIÓN CRÍTICA -->
 
