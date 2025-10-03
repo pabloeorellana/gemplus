@@ -21,7 +21,8 @@ import catalogRoutes from './routes/catalogRoutes.js';
 import practiceLocationRoutes from './routes/practiceLocationRoutes.js';
 
 const app = express();
-const PORT = process.env.PORT || 3001;
+// <-- CORRECCIÓN: Puerto por defecto ajustado a 3000 para consistencia con Coolify.
+const PORT = process.env.PORT || 3000;
 const JWT_SECRET = process.env.JWT_SECRET;
 
 const __filename = fileURLToPath(import.meta.url);
@@ -66,8 +67,6 @@ const storageBasePath = process.env.STORAGE_PATH || '/data';
 const attachmentsPath = path.join(storageBasePath, 'clinical_attachments');
 app.use('/storage', express.static(attachmentsPath));
 
-// --- INICIO DE LA MODIFICACIÓN: APLICAR PREFIJO GLOBAL ---
-// Creamos un router principal para la API
 const apiRouter = express.Router();
 
 // Montamos todas las rutas de la API bajo este router principal
@@ -84,14 +83,19 @@ apiRouter.use('/admin', adminRoutes);
 apiRouter.use('/catalogs', catalogRoutes);
 apiRouter.use('/locations', practiceLocationRoutes);
 
-// Ruta de "health check"
+// La ruta de health check para la API sigue aquí, por si la necesitamos en el futuro.
 apiRouter.get('/health', (req, res) => {
-    res.status(200).json({ status: 'OK', message: 'Servidor GEM Plus está funcionando!' });
+    res.status(200).json({ status: 'OK', message: 'API de GEM Plus está funcionando!' });
 });
 
 // Montamos el router principal en el prefijo /api
 app.use('/api', apiRouter);
-// --- FIN DE LA MODIFICACIÓN ---
+
+// <-- CORRECCIÓN: Ruta de Health Check para Coolify en la raíz del servidor.
+// Coolify no conoce el prefijo /api, por lo que esta ruta debe estar aquí.
+app.get('/health', (req, res) => {
+    res.status(200).json({ status: 'OK', message: 'Servidor GEM Plus está funcionando!' });
+});
 
 
 app.use((err, req, res, next) => {
