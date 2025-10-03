@@ -7,10 +7,13 @@ const getAuthToken = () => {
 const authFetch = async (endpoint, options = {}) => {
     const token = getAuthToken();
     
-    // Con la nueva configuración de `config.js`, la URL se construye de forma simple y directa.
-    // Ej en Prod: API_BASE_URL ('/api') + endpoint ('/users/me') = '/api/users/me'
-    // Ej en Dev: API_BASE_URL ('http://.../api') + endpoint ('/users/me') = 'http://.../api/users/me'
-    const url = `${API_BASE_URL}${endpoint}`;
+    // <-- INICIO DE LA CORRECCIÓN CRÍTICA Y DEFINITIVA -->
+    // Esta lógica asegura que no haya duplicación de "/api".
+    // Si el endpoint que nos pasan ya empieza con /api, no hacemos nada.
+    // Si no empieza con /api, le añadimos la URL base.
+    const finalEndpoint = endpoint.startsWith('/api/') ? endpoint.substring(4) : endpoint;
+    const url = `${API_BASE_URL}${finalEndpoint}`;
+    // <-- FIN DE LA CORRECCIÓN CRÍTICA Y DEFINITIVA -->
 
     const isFormData = options.body instanceof FormData;
 
@@ -48,7 +51,6 @@ const authFetch = async (endpoint, options = {}) => {
             try {
                 errorData = await response.json();
             } catch (e) {
-                // Si la respuesta de error no es JSON (como una página 404 de HTML), usamos el statusText.
                 errorData = { message: response.statusText || `Error del servidor ${response.status}` };
             }
             throw new Error(errorData.message || `Error ${response.status}`);
