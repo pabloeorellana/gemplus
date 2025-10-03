@@ -83,7 +83,7 @@ const AppointmentBookingPage = () => {
                 setWelcomeModalOpen(false);
                 setLoadingProfessionals(true);
                 try {
-                    const professionalsResponse = await fetch(`${API_BASE_URL}/api/public/professionals`);
+                    const professionalsResponse = await fetch(`${API_BASE_URL}/public/professionals`);
                     const professionalsData = await professionalsResponse.json();
                     const prof = professionalsData.find(p => p.id === paramProfessionalId);
 
@@ -92,10 +92,10 @@ const AppointmentBookingPage = () => {
                         setSelectedProfessionalName(prof.fullName);
                         setSelectedSpecialty(prof.specialty);
 
-                        const locationsResponse = await fetch(`${API_BASE_URL}/api/public/professionals/${prof.id}/locations`);
+                        const locationsResponse = await fetch(`${API_BASE_URL}/public/professionals/${prof.id}/locations`);
                         const locationsData = await locationsResponse.json();
                         
-                        setLocations(locationsData); // <-- CORRECCIÓN: Guardar siempre la data de locations
+                        setLocations(locationsData);
 
                         if (locationsData.length === 0) {
                              setErrorProfessionals('Este profesional no tiene consultorios configurados.');
@@ -134,7 +134,7 @@ const AppointmentBookingPage = () => {
         setDniLookupPerformed(true);
 
         try {
-            const response = await fetch(`${API_BASE_URL}/api/public/patients/lookup?dni=${dniInput.trim()}`);
+            const response = await fetch(`${API_BASE_URL}/public/patients/lookup?dni=${dniInput.trim()}`);
             if (response.status === 404) {
                 setRecognizedPatient({ dni: dniInput.trim() });
                 throw new Error("DNI no encontrado. Puede continuar y completar sus datos.");
@@ -168,7 +168,7 @@ const AppointmentBookingPage = () => {
         setLoadingProfessionals(true);
         setErrorProfessionals('');
         try {
-            const response = await fetch(`${API_BASE_URL}/api/public/professionals?specialty=${encodeURIComponent(specialtyName)}`);
+            const response = await fetch(`${API_BASE_URL}/public/professionals?specialty=${encodeURIComponent(specialtyName)}`);
             if (!response.ok) {
                 throw new Error('Error al cargar profesionales para esta especialidad.');
             }
@@ -188,13 +188,13 @@ const AppointmentBookingPage = () => {
         setLoadingLocations(true);
         setErrorLocations('');
         try {
-            const response = await fetch(`${API_BASE_URL}/api/public/professionals/${profId}/locations`);
+            const response = await fetch(`${API_BASE_URL}/public/professionals/${profId}/locations`);
             if (!response.ok) {
                 throw new Error('Error al cargar los consultorios de este profesional.');
             }
             const data = await response.json();
             
-            setLocations(data); // <-- CORRECCIÓN CRÍTICA: Guardar siempre la lista de consultorios
+            setLocations(data);
 
             if (data.length === 0) {
                 setErrorLocations('Este profesional no tiene consultorios activos para la reserva online.');
@@ -239,7 +239,7 @@ const AppointmentBookingPage = () => {
                 reasonForVisit: patientDetails.reasonForVisit
             };
             
-            const response = await fetch(`${API_BASE_URL}/api/public/appointments`, {
+            const response = await fetch(`${API_BASE_URL}/public/appointments`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(payload),

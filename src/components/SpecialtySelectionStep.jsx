@@ -16,7 +16,8 @@ const SpecialtySelectionStep = ({ onSelectSpecialty }) => {
             setLoading(true);
             setError(null);
             try {
-                const response = await fetch(`${API_BASE_URL}/api/public/specialties`);
+                // <-- CORRECCIÓN: Se construye la URL correctamente usando la variable.
+                const response = await fetch(`${API_BASE_URL}/public/specialties`);
                 if (!response.ok) {
                     throw new Error("No se pudieron cargar las especialidades disponibles.");
                 }

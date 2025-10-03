@@ -24,7 +24,8 @@ const AvailabilityCalendar = ({ onSlotSelect, professionalId, locationId }) => {
 
         const dateKey = format(selectedDate, 'yyyy-MM-dd');
 
-        fetch(`${API_BASE_URL}/api/public/availability?date=${dateKey}&professionalId=${professionalId}&locationId=${locationId}`)
+        // <-- CORRECCIÓN: Se construye la URL correctamente usando la variable.
+        fetch(`${API_BASE_URL}/public/availability?date=${dateKey}&professionalId=${professionalId}&locationId=${locationId}`)
             .then(response => {
                 if (!response.ok) throw new Error(`Error del servidor al obtener horarios.`);
                 return response.json();
