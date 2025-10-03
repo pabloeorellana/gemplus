@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import {
+    // <-- INICIO DE LA CORRECCIÓN: Se añade 'Grid' a la importación -->
     Container, Typography, Grid, Card, CardActionArea, CardContent,
     CircularProgress, Alert, Box
 } from '@mui/material';
