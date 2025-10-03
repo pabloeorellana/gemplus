@@ -1,13 +1,26 @@
 import pool from '../config/db.js';
 
+// --- FUNCIÓN DE ESPECIALIDADES MODIFICADA ---
 export const getSpecialties = async (req, res) => {
     try {
-        const [specialties] = await pool.query('SELECT * FROM Specialties ORDER BY name ASC');
+        // <-- INICIO DE LA MODIFICACIÓN -->
+        // Esta consulta ahora solo devuelve especialidades que tienen al menos un profesional activo asociado.
+        const [specialties] = await pool.query(`
+            SELECT s.id, s.name, s.description
+            FROM Specialties s
+            JOIN Professionals p ON s.name = p.specialty
+            JOIN Users u ON p.userId = u.id
+            WHERE u.isActive = TRUE AND u.role = 'PROFESSIONAL'
+            GROUP BY s.id, s.name, s.description
+            ORDER BY s.name ASC
+        `);
+        // <-- FIN DE LA MODIFICACIÓN -->
         res.json(specialties);
     } catch (error) {
         res.status(500).json({ message: 'Error del servidor al obtener especialidades.' });
     }
 };
+
 
 export const createSpecialty = async (req, res) => {
     const { name, description } = req.body;
@@ -66,7 +79,7 @@ export const getPathologies = async (req, res) => {
             SELECT 
                 p.*, 
                 GROUP_CONCAT(s.id) as specialtyIds,
-                GROUP_CONCAT(s.name SEPARATOR ', ') as specialtyNames -- <-- AÑADIDO: Obtener los nombres de las especialidades
+                GROUP_CONCAT(s.name SEPARATOR ', ') as specialtyNames
             FROM Pathologies p
             LEFT JOIN SpecialtyPathologies sp ON p.id = sp.pathologyId
             LEFT JOIN Specialties s ON sp.specialtyId = s.id
@@ -77,7 +90,7 @@ export const getPathologies = async (req, res) => {
         const result = pathologies.map(p => ({
             ...p,
             specialtyIds: p.specialtyIds ? p.specialtyIds.split(',').map(Number) : [],
-            specialtyNames: p.specialtyNames || '' // <-- AÑADIDO: Asegurar que el campo exista
+            specialtyNames: p.specialtyNames || ''
         }));
         res.json(result);
     } catch (error) {
@@ -137,7 +150,6 @@ export const updatePathology = async (req, res) => {
             return res.status(404).json({ message: 'Patología no encontrada.' });
         }
 
-        // Actualizar las asociaciones
         await connection.query('DELETE FROM SpecialtyPathologies WHERE pathologyId = ?', [id]);
         if (specialtyIds && specialtyIds.length > 0) {
             const specialtyLinks = specialtyIds.map(specialtyId => [specialtyId, id]);
@@ -161,7 +173,6 @@ export const updatePathology = async (req, res) => {
 };
 
 export const deletePathology = async (req, res) => {
-    // Esta función no necesita cambios, el ON DELETE CASCADE se encarga de las asociaciones
     const { id } = req.params;
     try {
         const [result] = await pool.query('DELETE FROM Pathologies WHERE id = ?', [id]);
@@ -174,19 +185,15 @@ export const deletePathology = async (req, res) => {
     }
 };
 
-
-// --- NUEVA FUNCIÓN PARA FILTRAR PATOLOGÍAS POR ESPECIALIDAD ---
 export const getPathologiesBySpecialty = async (req, res) => {
     const { userId } = req.user;
     try {
-        // Primero, obtenemos la especialidad del profesional logueado
         const [profData] = await pool.query('SELECT specialty FROM Professionals WHERE userId = ?', [userId]);
         if (profData.length === 0) {
-            return res.json([]); // Si no tiene especialidad, devuelve un array vacío
+            return res.json([]);
         }
         const specialtyName = profData[0].specialty;
 
-        // Luego, obtenemos las patologías asociadas a esa especialidad
         const [pathologies] = await pool.query(`
             SELECT p.* 
             FROM Pathologies p
@@ -202,6 +209,7 @@ export const getPathologiesBySpecialty = async (req, res) => {
         res.status(500).json({ message: 'Error del servidor al obtener patologías.' });
     }
 };
+
 export const getPrefixes = async (req, res) => {
     try {
         const [prefixes] = await pool.query('SELECT * FROM Prefixes ORDER BY name ASC');
@@ -258,6 +266,6 @@ export const deletePrefix = async (req, res) => {
         }
         res.json({ message: 'Prefijo eliminado.' });
     } catch (error) {
-        res.status(500).json({ message: 'Error del servidor al eliminar el prefijo.' });
+        res.status(500).json({ message: 'Error del servidor al eliminar la especialidad.' });
     }
 };

@@ -11,10 +11,10 @@ export const getPublicProfessionals = async (req, res) => {
                 u.profileImageUrl, 
                 p.specialty, 
                 p.description,
-                p.matriculaProfesional
+                p.matriculaProfesional 
             FROM Users u
             JOIN Professionals p ON u.id = p.userId
-            WHERE u.isActive = TRUE AND u.role = 'PROFESSIONAL'
+            WHERE u.isActive = TRUE AND u.role = 'PROFESSIONAL' AND p.specialty IS NOT NULL AND p.specialty <> ''
         `;
         const params = [];
 
@@ -43,7 +43,8 @@ export const getProfessionalLocations = async (req, res) => {
             [professionalId]
         );
         res.json(locations);
-    } catch (error) {
+    } catch (error)
+    {
         console.error("Error en getProfessionalLocations:", error);
         res.status(500).json({ message: 'Error del servidor al obtener los consultorios.' });
     }

@@ -10,9 +10,7 @@ const authFetch = async (endpoint, options = {}) => {
     // <-- INICIO DE LA CORRECCIÓN CRÍTICA -->
     // Verificamos si el endpoint ya comienza con la URL base (que en producción es "/api").
     // Si es así, no la añadimos de nuevo. Esto evita la duplicación /api/api.
-    const url = endpoint.startsWith(API_BASE_URL) 
-        ? endpoint 
-        : `${API_BASE_URL}${endpoint}`;
+    const url = `${API_BASE_URL}${endpoint}`;
     // <-- FIN DE LA CORRECCIÓN CRÍTICA -->
 
     const isFormData = options.body instanceof FormData;
