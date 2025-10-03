@@ -1,6 +1,6 @@
 import express from 'express';
 import {
-    getSpecialties, createSpecialty, updateSpecialty, deleteSpecialty,
+    getAllSpecialties, createSpecialty, updateSpecialty, deleteSpecialty,
     getPathologies, createPathology, updatePathology, deletePathology,
     getPrefixes, createPrefix, updatePrefix, deletePrefix, getPathologiesBySpecialty
 } from '../controllers/catalogController.js';
@@ -9,7 +9,7 @@ import { protect, authorize } from '../middleware/authMiddleware.js';
 const router = express.Router();
 
 router.use(protect);
-router.get('/specialties', getSpecialties);
+router.get('/specialties', authorize('ADMIN', 'PROFESSIONAL'), getAllSpecialties);
 router.get('/pathologies', getPathologies);
 router.get('/pathologies/by-specialty', getPathologiesBySpecialty);
 router.get('/prefixes', getPrefixes);

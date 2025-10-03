@@ -1,7 +1,17 @@
 import pool from '../config/db.js';
 
+export const getAllSpecialties = async (req, res) => {
+    try {
+        const [specialties] = await pool.query('SELECT * FROM Specialties ORDER BY name ASC');
+        res.json(specialties);
+    } catch (error) {
+        console.error("Error en getAllSpecialties (Admin):", error);
+        res.status(500).json({ message: 'Error del servidor al obtener especialidades.' });
+    }
+};
+
 // --- FUNCIÓN DE ESPECIALIDADES MODIFICADA ---
-export const getSpecialties = async (req, res) => {
+export const getPublicSpecialties = async (req, res) => {
     try {
         // <-- INICIO DE LA MODIFICACIÓN -->
         // Esta consulta ahora solo devuelve especialidades que tienen al menos un profesional activo asociado.
@@ -17,7 +27,7 @@ export const getSpecialties = async (req, res) => {
         // <-- FIN DE LA MODIFICACIÓN -->
         res.json(specialties);
     } catch (error) {
-        res.status(500).json({ message: 'Error del servidor al obtener especialidades.' });
+        res.status(500).json({ message: 'Error del servidor al obtener especialidades publicas.' });
     }
 };
 
