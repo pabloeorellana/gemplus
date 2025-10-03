@@ -87,7 +87,7 @@ const LandingPage = () => {
                         <Grid item xs={12} md={6} sx={{ zIndex: 2, textAlign: { xs: 'center', md: 'left' } }}>
                              <Chip label="Nuestra Solución" color="primary" sx={{ mb: 2 }} />
                             <Typography variant="h3" component="h2" shape sx={{ fontWeight: 'bold', mb: 2 }}>
-                                GEM Plus: La gestión de salud al alcance de tu mano.
+                                PRUEBA GEM Plus: La gestión de salud al alcance de tu mano.
                             </Typography>
                             <Typography variant="h6" color="text.secondary" paragraph>
                                 Digitalizá tu consultorio, simplifica la vida de tus pacientes.
