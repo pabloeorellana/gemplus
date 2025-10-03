@@ -9,7 +9,7 @@ import Visibility from '@mui/icons-material/Visibility';
 import VisibilityOff from '@mui/icons-material/VisibilityOff';
 import { API_BASE_URL } from '../../config';
 
-const logoUrl = "/public/gemplus-logo.png";
+const logoUrl = "/gemplus-logo.png";
 
 const ProfessionalLoginPage = () => {
     const [credentials, setCredentials] = useState({
