@@ -1,5 +1,5 @@
 import React from 'react';
-import { Typography, Paper, Button, Box, Alert, Stack, Divider } from '@mui/material';
+import { Grid, Typography, Paper, Button, Box, Alert, Stack, Divider } from '@mui/material';
 import CheckCircleOutlineIcon from '@mui/icons-material/CheckCircleOutline';
 import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined';
 import LocationOnOutlinedIcon from '@mui/icons-material/LocationOnOutlined';
