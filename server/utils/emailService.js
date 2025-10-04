@@ -15,6 +15,9 @@ const transporter = nodemailer.createTransport({
     },
 });
 
+// <-- Definimos la URL del logo. Usará la variable de entorno si existe, si não, usa una por defecto. -->
+const LOGO_URL = process.env.APP_LOGO_URL || 'https://www.gemplus.com.ar/gemplus-logo.png';
+
 export const sendAppointmentConfirmationEmail = async (patientEmail, patientName, professionalName, dateTime, reasonForVisit, location) => {
     if (!process.env.EMAIL_HOST || !process.env.EMAIL_USER || !process.env.EMAIL_PASSWORD || !process.env.SENDER_EMAIL) {
         console.error('Error: Las variables de entorno para el envío de correos no están configuradas correctamente.');
@@ -38,7 +41,8 @@ export const sendAppointmentConfirmationEmail = async (patientEmail, patientName
         <style>
             body { margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; background-color: #f4f4f4; }
             .container { max-width: 600px; margin: 20px auto; background-color: #ffffff; border-radius: 8px; overflow: hidden; border: 1px solid #e0e0e0; }
-            .header { background-color: #028184; padding: 20px; text-align: center; border-bottom: 1px solid #015E5E; }
+            /* <-- MODIFICADO: Color de fondo del header a blanco y borde sutil --> */
+            .header { background-color: #ffffff; padding: 20px; text-align: center; border-bottom: 1px solid #e0e0e0; }
             .header img { height: 50px; }
             .content { padding: 30px; text-align: center; color: #2E3A3A; }
             .content-icon { font-size: 48px; color: #028184; }
@@ -59,7 +63,8 @@ export const sendAppointmentConfirmationEmail = async (patientEmail, patientName
     <body>
         <div class="container">
             <div class="header">
-                <img src="${process.env.APP_LOGO_URL || 'https://www.unsta.edu.ar/wp-content/uploads/2018/09/LOGO-2-01.png'}" alt="Logo">
+                {/* <-- MODIFICADO: Se usa la variable del logo --> */}
+                <img src="${LOGO_URL}" alt="GEM Plus Logo">
             </div>
             <div class="content">
                 <div class="content-icon">&#128197;</div>
@@ -131,7 +136,7 @@ export const sendAppointmentReminderEmail = async (patientEmail, patientName, pr
         <style>
             body { margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; background-color: #f4f4f4; }
             .container { max-width: 600px; margin: 20px auto; background-color: #ffffff; border-radius: 8px; overflow: hidden; border: 1px solid #e0e0e0; }
-            .header { background-color: #028184; padding: 20px; text-align: center; border-bottom: 1px solid #015E5E; }
+            .header { background-color: #ffffff; padding: 20px; text-align: center; border-bottom: 1px solid #e0e0e0; }
             .header img { height: 50px; }
             .content { padding: 30px; text-align: center; color: #2E3A3A; }
             .content-icon { font-size: 48px; color: #028184; }
@@ -149,7 +154,7 @@ export const sendAppointmentReminderEmail = async (patientEmail, patientName, pr
     <body>
         <div class="container">
             <div class="header">
-                <img src="${process.env.APP_LOGO_URL || 'https://www.unsta.edu.ar/wp-content/uploads/2018/09/LOGO-2-01.png'}" alt="Logo">
+                <img src="${LOGO_URL}" alt="GEM Plus Logo">
             </div>
             <div class="content">
                 <div class="content-icon">&#128337;</div>
@@ -195,7 +200,7 @@ export const sendAppointmentReminderEmail = async (patientEmail, patientName, pr
 
 export const sendPasswordResetEmail = async (userEmail, resetToken) => {
     if (!process.env.EMAIL_HOST || !process.env.SENDER_EMAIL || !process.env.FRONTEND_URL) {
-        console.error('Error: Faltan variables de entorno para el reseteo de contraseña (EMAIL_HOST, SENDER_EMAIL, FRONTEND_URL).');
+        console.error('Error: Faltan variables de entorno para el reseteo de contraseña.');
         return;
     }
 
@@ -210,7 +215,7 @@ export const sendPasswordResetEmail = async (userEmail, resetToken) => {
         <style>
             body { margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; background-color: #f4f4f4; }
             .container { max-width: 600px; margin: 20px auto; background-color: #ffffff; border-radius: 8px; overflow: hidden; border: 1px solid #e0e0e0; }
-            .header { background-color: #028184; padding: 20px; text-align: center; border-bottom: 1px solid #015E5E; }
+            .header { background-color: #ffffff; padding: 20px; text-align: center; border-bottom: 1px solid #e0e0e0; }
             .header img { height: 50px; }
             .content { padding: 30px; text-align: center; color: #2E3A3A; }
             .content-icon { font-size: 48px; color: #f57c00; }
@@ -230,7 +235,7 @@ export const sendPasswordResetEmail = async (userEmail, resetToken) => {
     <body>
         <div class="container">
             <div class="header">
-                 <img src="${process.env.APP_LOGO_URL || 'https://www.unsta.edu.ar/wp-content/uploads/2018/09/LOGO-2-01.png'}" alt="Logo">
+                <img src="${LOGO_URL}" alt="GEM Plus Logo">
             </div>
             <div class="content">
                 <div class="content-icon">&#128273;</div>
@@ -299,7 +304,7 @@ export const sendDailyAgendaEmail = async (professionalEmail, professionalName, 
         <style>
             body { margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; background-color: #f4f4f4; }
             .container { max-width: 600px; margin: 20px auto; background-color: #ffffff; border-radius: 8px; overflow: hidden; border: 1px solid #e0e0e0; }
-            .header { background-color: #028184; padding: 20px; text-align: center; border-bottom: 1px solid #015E5E; }
+            .header { background-color: #ffffff; padding: 20px; text-align: center; border-bottom: 1px solid #e0e0e0; }
             .header img { height: 50px; }
             .content { padding: 30px; text-align: left; color: #2E3A3A; }
             .content-icon { font-size: 48px; color: #028184; text-align: center; }
@@ -316,7 +321,7 @@ export const sendDailyAgendaEmail = async (professionalEmail, professionalName, 
     <body>
         <div class="container">
             <div class="header">
-                 <img src="${process.env.APP_LOGO_URL || 'https://www.unsta.edu.ar/wp-content/uploads/2018/09/LOGO-2-01.png'}" alt="Logo">
+                 <img src="${LOGO_URL}" alt="GEM Plus Logo">
             </div>
             <div class="content">
                 <div class="content-icon">&#128214;</div>
