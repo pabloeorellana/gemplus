@@ -161,7 +161,7 @@ const ProfessionalDashboardLayout = (props) => {
                         <MenuIcon />
                     </IconButton>
                     <Box component={RouterLink} to="/profesional/dashboard/agenda" sx={{ display: 'flex', alignItems: 'center', textDecoration: 'none', color: 'inherit' }}>
-                        <Box component="img" src="/public/gemplus-logo.png" sx={{ height: '36px', mr: 1.5 }} />
+                        <Box component="img" src="/gemplus-logo.png" sx={{ height: '36px', mr: 1.5 }} />
                         <Typography variant="h6" noWrap sx={{ display: { xs: 'none', sm: 'block' } }}>
                             | Gestión de Pacientes y Turnos
                         </Typography>

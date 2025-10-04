@@ -76,7 +76,7 @@ const AppointmentsView = () => {
         try {
             const [patientsData, pathologiesData, locationsData] = await Promise.all([
                 authFetch('/api/patients'),
-                authFetch('/api/catalogs/pathologies'),
+                authFetch('/api/catalogs/pathologies/by-specialty'),
                 authFetch('/api/locations')
             ]);
             const formattedPatients = (patientsData || []).map(p => ({...p, fullName: p.fullName || `${p.firstName} ${p.lastName}`.trim()}));
@@ -360,28 +360,39 @@ const AppointmentsView = () => {
     return (
         <LocalizationProvider dateAdapter={AdapterDateFns} adapterLocale={fnsEsLocale}>
             <Paper elevation={3} sx={{ p: {xs: 1, sm: 2, md: 3} }}>
-                <Stack direction={{xs: 'column', sm: 'row'}} justifyContent="space-between" alignItems="center" spacing={2} mb={2}>
-                    <Typography variant="h5" gutterBottom component="div" sx={{m:0}}>Mi Agenda de Turnos</Typography>
-                    <Stack direction="row" spacing={1} alignItems="center">
-                        <FormControl size="small" sx={{minWidth: 180}}>
+                <Stack 
+                    direction={{xs: 'column', md: 'row'}} 
+                    justifyContent="space-between" 
+                    alignItems={{xs: 'stretch', md: 'center'}} 
+                    spacing={2} 
+                    mb={2}
+                >
+                    <Typography variant="h5" gutterBottom component="div" sx={{m:0, textAlign: {xs: 'center', md: 'left'}}}>
+                        Mi Agenda de Turnos
+                    </Typography>
+                    <Stack 
+                        direction={{xs: 'column', sm: 'row'}} 
+                        spacing={1} 
+                        alignItems="center"
+                    >
+                        <FormControl size="small" fullWidth sx={{minWidth: 180}}>
                             <InputLabel>Filtrar por Consultorio</InputLabel>
                             <Select value={locationFilter} label="Filtrar por Consultorio" onChange={(e) => setLocationFilter(e.target.value)}>
                                 <MenuItem value="ALL">Todos los Consultorios</MenuItem>
                                 {locations.map(loc => (<MenuItem key={loc.id} value={loc.id}>{loc.name}</MenuItem>))}
                             </Select>
                         </FormControl>
-                        <FormControl size="small" sx={{minWidth: 180}}>
+                        <FormControl size="small" fullWidth sx={{minWidth: 180}}>
                             <InputLabel>Filtrar por Estado</InputLabel>
                             <Select value={statusFilter} label="Filtrar por Estado" onChange={(e) => setStatusFilter(e.target.value)}>
                                 <MenuItem value="ALL">Todos los turnos</MenuItem>
                                 {availableStatuses.map(statusKey => (<MenuItem key={statusKey} value={statusKey}>{statusColors[statusKey]?.label}</MenuItem>))}
                             </Select>
                         </FormControl>
-                        <Button variant="contained" startIcon={<AddCircleOutlineIcon />} onClick={handleOpenNewAppointmentModal}>Añadir Turno</Button>
+                        <Button variant="contained" startIcon={<AddCircleOutlineIcon />} onClick={handleOpenNewAppointmentModal} fullWidth>Añadir Turno</Button>
                     </Stack>
                 </Stack>
                 
-                {/* <-- INICIO DE LA CORRECCIÓN DE ESTILOS --> */}
                 <style>{`
                     .fc-event-custom { 
                         border-radius: 6px !important; 
@@ -410,7 +421,6 @@ const AppointmentsView = () => {
                         font-family: 'Poppins', sans-serif; 
                     }
                 `}</style>
-                {/* <-- FIN DE LA CORRECCIÓN DE ESTILOS --> */}
                 
                 <FullCalendar
                     ref={calendarRef}

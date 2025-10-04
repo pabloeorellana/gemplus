@@ -385,30 +385,32 @@ const PatientsView = () => {
                             <Button variant="contained" startIcon={<PersonAddIcon />} onClick={handleOpenAddPatientModal}>Añadir Paciente</Button>
                         </Stack>
                     </Stack>
-                    <MaterialReactTable
-                        columns={patientTableColumns} data={filteredPatientsForTable}
-                        localization={MRT_Localization_ES} enableRowActions
-                        positionActionsColumn="last" enableColumnResizing layoutMode="grid"
-                        muiTablePaperProps={{ elevation: 0 }}
-                        renderRowActions={({ row }) => (
-                            <Box sx={{ display: 'flex', gap: '0.25rem' }}>
-                                <Tooltip title="Ver Detalles"><IconButton size="small" onClick={() => handleViewPatientDetails(row.original)}><VisibilityIcon /></IconButton></Tooltip>
-                                <Tooltip title="Editar Paciente"><IconButton size="small" onClick={() => handleEditPatient(row.original)}><EditIcon /></IconButton></Tooltip>
-                                {row.original.isActive ? (
-                                    <Tooltip title="Archivar Paciente"><IconButton size="small" color="warning" onClick={() => handleTogglePatientStatusRequest(row.original)}><ArchiveIcon /></IconButton></Tooltip>
-                                ) : (
-                                    <Tooltip title="Reactivar Paciente"><IconButton size="small" color="success" onClick={() => handleTogglePatientStatusRequest(row.original)}><UnarchiveIcon /></IconButton></Tooltip>
-                                )}
-                            </Box>
-                        )}
-                        enableGlobalFilter initialState={{ showGlobalFilter: true }}
-                        muiSearchTextFieldProps={{
-                            placeholder: 'Buscar pacientes...',
-                            sx: { m: '0.5rem 0', width: '100%' },
-                            variant: 'outlined', size: 'small',
-                        }}
-                        positionGlobalFilter="left"
-                    />
+                    <Box sx={{ overflowX: 'auto', width: '100%' }}>
+                        <MaterialReactTable
+                            columns={patientTableColumns} data={filteredPatientsForTable}
+                            localization={MRT_Localization_ES} enableRowActions
+                            positionActionsColumn="last"
+                            muiTablePaperProps={{ elevation: 0, sx: { minWidth: '800px' } }}
+                            renderRowActions={({ row }) => (
+                                <Box sx={{ display: 'flex', gap: '0.25rem', flexWrap: 'nowrap' }}>
+                                    <Tooltip title="Ver Detalles"><IconButton size="small" onClick={() => handleViewPatientDetails(row.original)}><VisibilityIcon /></IconButton></Tooltip>
+                                    <Tooltip title="Editar Paciente"><IconButton size="small" onClick={() => handleEditPatient(row.original)}><EditIcon /></IconButton></Tooltip>
+                                    {row.original.isActive ? (
+                                        <Tooltip title="Archivar Paciente"><IconButton size="small" color="warning" onClick={() => handleTogglePatientStatusRequest(row.original)}><ArchiveIcon /></IconButton></Tooltip>
+                                    ) : (
+                                        <Tooltip title="Reactivar Paciente"><IconButton size="small" color="success" onClick={() => handleTogglePatientStatusRequest(row.original)}><UnarchiveIcon /></IconButton></Tooltip>
+                                    )}
+                                </Box>
+                            )}
+                            enableGlobalFilter initialState={{ showGlobalFilter: true }}
+                            muiSearchTextFieldProps={{
+                                placeholder: 'Buscar pacientes...',
+                                sx: { m: '0.5rem 0', width: '100%' },
+                                variant: 'outlined', size: 'small',
+                            }}
+                            positionGlobalFilter="left"
+                        />
+                    </Box>
                 </Paper>
             )}
 
@@ -519,7 +521,7 @@ const PatientsView = () => {
 
             <Dialog open={openTogglePatientStatusConfirmModal} onClose={handleCloseTogglePatientStatusConfirmModal}>
                 <DialogTitle>Confirmar Cambio de Estado</DialogTitle>
-                <DialogContent><DialogContentText>¿Está seguro de que desea **{patientToToggle?.isActive ? 'archivar' : 'reactivar'}** al paciente **{patientToToggle?.fullName}**?{patientToToggle?.isActive && " Un paciente archivado no aparecerá en las búsquedas para nuevos turnos."}</DialogContentText></DialogContent>
+                <DialogContent><DialogContentText>¿Está seguro de que desea **{patientToToggle?.isActive ? 'archivado' : 'reactivar'}** al paciente **{patientToToggle?.fullName}**?{patientToToggle?.isActive && " Un paciente archivado no aparecerá en las búsquedas para nuevos turnos."}</DialogContentText></DialogContent>
                 <DialogActions><Button onClick={handleCloseTogglePatientStatusConfirmModal}>Cancelar</Button><Button onClick={handleConfirmTogglePatientStatus} color={patientToToggle?.isActive ? "warning" : "success"}>{patientToToggle?.isActive ? 'Archivar' : 'Reactivar'}</Button></DialogActions>
             </Dialog>
 
