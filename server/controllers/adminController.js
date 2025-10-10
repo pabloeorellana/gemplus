@@ -1,6 +1,18 @@
 import bcrypt from 'bcryptjs';
 import { v4 as uuidv4 } from 'uuid';
 import pool from '../config/db.js';
+import { DateTime } from 'luxon';
+
+// --- FUNCIÓN REINCORPORADA ---
+// Obtiene TODOS los planes, incluidos los no públicos como "Cortesía"
+export const getAllPlansForAdmin = async (req, res) => {
+    try {
+        const [plans] = await pool.query('SELECT id, name, price FROM Plans ORDER BY price ASC');
+        res.json(plans);
+    } catch (error) {
+        res.status(500).json({ message: 'Error al obtener los planes.' });
+    }
+};
 
 export const getAllUsers = async (req, res) => {
     try {
@@ -24,6 +36,7 @@ export const createUser = async (req, res) => {
     }
     const fullName = `${lastName}, ${firstName}`;
     const finalPrefix = (prefix === 'Sin prefijo' || !prefix) ? null : prefix;
+    const trialEnds = DateTime.now().plus({ days: 30 }).toSQL();
 
     let connection;
     try {
@@ -37,10 +50,20 @@ export const createUser = async (req, res) => {
         const salt = await bcrypt.genSalt(10);
         const passwordHash = await bcrypt.hash(password, salt);
         const userId = uuidv4();
+        
         await connection.query(
-            'INSERT INTO Users (id, usuario, email, passwordHash, fullName, firstName, lastName, prefix, role, dni) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
-            [userId, usuario, email, passwordHash, fullName, firstName, lastName, finalPrefix, role, dni || null]
+            'INSERT INTO Users (id, usuario, email, passwordHash, fullName, firstName, lastName, prefix, role, dni, trialEndsAt) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+            [userId, usuario, email, passwordHash, fullName, firstName, lastName, finalPrefix, role, dni || null, trialEnds]
         );
+
+        const [plusPlan] = await connection.query("SELECT id FROM Plans WHERE name = 'Plus'");
+        if (plusPlan.length > 0) {
+            await connection.query(
+                "INSERT INTO Subscriptions (userId, planId, status, type, currentPeriodEnd) VALUES (?, ?, 'active', 'trial', ?)",
+                [userId, plusPlan[0].id, trialEnds]
+            );
+        }
+
         if (role === 'PROFESSIONAL') {
             await connection.query(
                 'INSERT INTO Professionals (userId, specialty, matriculaProfesional) VALUES (?, ?, ?)',
@@ -216,5 +239,107 @@ export const deleteUserPermanently = async (req, res) => {
         res.status(500).json({ message: 'Error del servidor al eliminar el usuario permanentemente.' });
     } finally {
         if (connection) connection.release();
+    }
+};
+
+export const assignManualSubscription = async (req, res) => {
+    const { userId } = req.params;
+    const { planId, expirationDate } = req.body;
+
+    if (!planId || !expirationDate) {
+        return res.status(400).json({ message: 'Se requiere un plan y una fecha de expiración.' });
+    }
+
+    // <-- INICIO DE LA CORRECCIÓN CRÍTICA -->
+    // Convertimos la fecha ISO 8601 a un formato SQL válido (YYYY-MM-DD HH:MM:SS)
+    const formattedExpirationDate = DateTime.fromISO(expirationDate).toSQL({ includeOffset: false });
+    // <-- FIN DE LA CORRECCIÓN CRÍTICA -->
+
+    const connection = await pool.getConnection();
+    try {
+        await connection.beginTransaction();
+
+        await connection.query("UPDATE Subscriptions SET status = 'cancelled' WHERE userId = ? AND status = 'active'", [userId]);
+
+        await connection.query(
+            `INSERT INTO Subscriptions (userId, planId, status, type, currentPeriodEnd) VALUES (?, ?, 'active', 'manual', ?)`,
+            [userId, planId, formattedExpirationDate] // <-- Usamos la fecha formateada
+        );
+
+        await connection.query('UPDATE Users SET isActive = TRUE, trialEndsAt = NULL WHERE id = ?', [userId]);
+        
+        await connection.commit();
+        res.json({ message: 'Suscripción manual asignada correctamente.' });
+
+    } catch (error) {
+        await connection.rollback();
+        console.error('Error en assignManualSubscription:', error);
+        res.status(500).json({ message: 'Error del servidor al asignar la suscripción.' });
+    } finally {
+        connection.release();
+    }
+};
+export const getAllSubscriptions = async (req, res) => {
+    try {
+        const [subscriptions] = await pool.query(`
+            SELECT 
+                s.id,
+                u.fullName as userName,
+                u.email as userEmail,
+                p.name as planName,
+                s.status,
+                s.type,
+                s.currentPeriodEnd
+            FROM Subscriptions s
+            JOIN Users u ON s.userId = u.id
+            JOIN Plans p ON s.planId = p.id
+            ORDER BY s.updatedAt DESC
+        `);
+        res.json(subscriptions);
+    } catch (error) {
+        console.error('Error en getAllSubscriptions:', error);
+        res.status(500).json({ message: 'Error del servidor al obtener las suscripciones.' });
+    }
+};
+
+export const updateSubscriptionStatus = async (req, res) => {
+    const { subscriptionId } = req.params;
+    const { status } = req.body;
+
+    if (!status || !['cancelled', 'paused', 'active'].includes(status)) {
+        return res.status(400).json({ message: 'Se proporcionó un estado inválido.' });
+    }
+
+    const connection = await pool.getConnection();
+    try {
+        await connection.beginTransaction();
+
+        // Actualizar el estado de la suscripción
+        const [result] = await connection.query(
+            'UPDATE Subscriptions SET status = ? WHERE id = ?',
+            [status, subscriptionId]
+        );
+
+        if (result.affectedRows === 0) {
+            await connection.rollback();
+            return res.status(404).json({ message: 'Suscripción no encontrada.' });
+        }
+
+        // Si se cancela, también desactivamos al usuario
+        if (status === 'cancelled') {
+            const [subData] = await connection.query('SELECT userId FROM Subscriptions WHERE id = ?', [subscriptionId]);
+            const userId = subData[0].userId;
+            await connection.query('UPDATE Users SET isActive = FALSE WHERE id = ?', [userId]);
+        }
+
+        await connection.commit();
+        res.json({ message: `El estado de la suscripción se ha actualizado a ${status}.` });
+
+    } catch (error) {
+        await connection.rollback();
+        console.error('Error en updateSubscriptionStatus:', error);
+        res.status(500).json({ message: 'Error del servidor al actualizar la suscripción.' });
+    } finally {
+        connection.release();
     }
 };

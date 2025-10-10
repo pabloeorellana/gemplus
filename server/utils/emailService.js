@@ -63,7 +63,6 @@ export const sendAppointmentConfirmationEmail = async (patientEmail, patientName
     <body>
         <div class="container">
             <div class="header">
-                {/* <-- MODIFICADO: Se usa la variable del logo --> */}
                 <img src="${LOGO_URL}" alt="GEM Plus Logo">
             </div>
             <div class="content">

@@ -10,6 +10,7 @@ import EventIcon from '@mui/icons-material/Event';
 import ScheduleSendIcon from '@mui/icons-material/ScheduleSend';
 import PeopleIcon from '@mui/icons-material/People';
 import AssessmentIcon from '@mui/icons-material/Assessment';
+import SubscriptionsIcon from '@mui/icons-material/Subscriptions'; 
 import NotificationsIcon from '@mui/icons-material/Notifications';
 import AccountCircleIcon from '@mui/icons-material/AccountCircle';
 import LogoutIcon from '@mui/icons-material/Logout';
@@ -27,6 +28,7 @@ import PatientsView from './views/PatientsView.jsx';
 import ProfileView from './views/ProfileView.jsx';
 import StatisticsView from './views/StatisticsView.jsx';
 import LocationsView from './views/LocationsView.jsx';
+import SubscriptionView from './views/SubscriptionView.jsx';
 
 const drawerWidth = 240;
 
@@ -102,6 +104,7 @@ const ProfessionalDashboardLayout = (props) => {
         { text: 'Pacientes', icon: <PeopleIcon />, path: 'pacientes' },
         { text: 'Estadísticas', icon: <AssessmentIcon />, path: 'estadisticas' },
         { text: 'Mi Perfil', icon: <AccountCircleIcon />, path: 'perfil' },
+        { text: 'Suscripción', icon: <SubscriptionsIcon />, path: 'suscripcion' },
     ];
 
     const getInitials = (name) => {
@@ -282,6 +285,7 @@ const ProfessionalDashboardLayout = (props) => {
                     <Route path="pacientes" element={<PatientsView />} />
                     <Route path="estadisticas" element={<StatisticsView />} />
                     <Route path="perfil" element={<ProfileView />} />
+                    <Route path="suscripcion" element={<SubscriptionView />} />
                 </Routes>
             </Box>
         </Box>
