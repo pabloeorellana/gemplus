@@ -19,6 +19,8 @@ import adminRoutes from './routes/adminRoutes.js';
 import authRoutes from './routes/authRoutes.js';
 import catalogRoutes from './routes/catalogRoutes.js';
 import practiceLocationRoutes from './routes/practiceLocationRoutes.js';
+import subscriptionRoutes from './routes/subscriptionRoutes.js'; 
+import webhookRoutes from './routes/webhookRoutes.js';
 
 const app = express();
 // El puerto por defecto es 3000 para consistencia con la configuración de Coolify.
@@ -83,6 +85,8 @@ apiRouter.use('/notifications', notificationRoutes);
 apiRouter.use('/admin', adminRoutes);
 apiRouter.use('/catalogs', catalogRoutes);
 apiRouter.use('/locations', practiceLocationRoutes);
+app.use('/api/subscriptions', subscriptionRoutes);
+app.use('/api/subscriptions', webhookRoutes);
 
 // Ruta de health check para la API (accesible en /api/health)
 apiRouter.get('/health', (req, res) => {
